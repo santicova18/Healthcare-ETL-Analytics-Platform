@@ -40,6 +40,10 @@ INSTALLED_APPS = [
     'apps.authentication',
     'apps.patients',
     'apps.etl',
+    'apps.ml',
+    'apps.analytics',
+    'apps.reports',
+    'apps.dashboard',
 
 ]
 
