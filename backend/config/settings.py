@@ -9,8 +9,9 @@ https://docs.djangoproject.com/en/6.0/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/6.0/ref/settings/
 """
-
+import os
 from pathlib import Path
+from dotenv import load_dotenv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,7 +21,11 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-=i!^6*g!5-m7a+n+txiobmq^opoyyy1m3-4%f*suavw$2ij!-0'
+# El valor debe venir por variable de entorno (ver .env)
+SECRET_KEY = os.getenv('SECRET_KEY', '')
+if not SECRET_KEY:
+    raise RuntimeError('Falta SECRET_KEY en las variables de entorno (.env).')
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
@@ -80,12 +85,40 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# Carga las variables desde el archivo .env (si existe)
+# Usar ruta absoluta para asegurar que se cargue aunque el script se ejecute desde otro directorio
+load_dotenv(dotenv_path=BASE_DIR.parent / ".env")
+
+
+# Re-definimos BASE_DIR para mantener consistencia con la plantilla, pero sin romper el resto
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# Leemos una variable de entorno para decidir el motor
+USE_POSTGRES = os.getenv('USE_POSTGRES', 'False') == 'True'
+
+
+if USE_POSTGRES:
+    # Configuración para tu casa (PostgreSQL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME'),
+            'USER': os.getenv('DB_USER'),
+            'PASSWORD': os.getenv('DB_PASSWORD'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': '5432',
+        }
     }
-}
+else:
+    # Configuración para cuando no estás en casa (SQLite)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
+
+
 
 
 # Password validation
