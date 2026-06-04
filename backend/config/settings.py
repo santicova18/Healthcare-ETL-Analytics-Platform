@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Carga las variables desde el archivo .env (si existe)
+# Usar ruta absoluta para asegurar que se cargue aunque el script se ejecute desde otro directorio
+load_dotenv(dotenv_path=BASE_DIR.parent / ".env")
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -84,10 +87,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
-
-# Carga las variables desde el archivo .env (si existe)
-# Usar ruta absoluta para asegurar que se cargue aunque el script se ejecute desde otro directorio
-load_dotenv(dotenv_path=BASE_DIR.parent / ".env")
 
 
 # Re-definimos BASE_DIR para mantener consistencia con la plantilla, pero sin romper el resto
