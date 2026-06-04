@@ -2,29 +2,28 @@ import os
 import sys
 import django
 
-sys.path.append(os.path.join(os.path.dirname(__file__), 'backend'))
+# Asegurar que el directorio 'backend' esté en el sys.path
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if os.path.basename(current_dir) == 'backend':
+    backend_dir = current_dir
+else:
+    backend_dir = os.path.join(current_dir, 'backend')
 
-# 2. Ahora sí, configurar Django
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+# Configurar Django para que este script pueda "ver" el proyecto
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-
-# Construimos la ruta uniendo las carpetas de forma segura
+# Definir la ruta del archivo de dataset de forma absoluta
+BASE_DIR = os.path.dirname(backend_dir)
 ruta_archivo = os.path.join(BASE_DIR, 'dataset', 'dataset_clinico_etl_1800_registros.xlsx')
 
 print(f"Buscando archivo en: {ruta_archivo}")
 
-# 1. Configurar Django para que este script pueda "ver" el proyecto
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
-django.setup()
-
-# 2. Importar la función
+# Importar la función
 from apps.etl.services import process_clinical_dataset
-
-# 3. AQUÍ es donde le pasas la ruta
-ruta_archivo = "./dataset/dataset_clinico_etl_1800_registros.xlsx"
-
 
 print(f"Iniciando procesamiento de: {ruta_archivo}")
 cantidad = process_clinical_dataset(ruta_archivo)
