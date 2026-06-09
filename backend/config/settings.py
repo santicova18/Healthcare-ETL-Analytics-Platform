@@ -55,6 +55,20 @@ INSTALLED_APPS = [
 
 ]
 
+# Configuración de Autenticación
+AUTH_USER_MODEL = 'authentication.User'
+
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'dashboard:index'  # Asegúrate de que 'dashboard:index' sea el nombre correcto de tu URL del dashboard
+LOGOUT_REDIRECT_URL = 'login'
+
+# Seguridad de Sesiones (Crucial en entorno clínico)
+SESSION_COOKIE_AGE = 3600  # 1 hora de sesión
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Cerrar al cerrar navegador
+SESSION_COOKIE_HTTPONLY = True  # Protege contra XSS
+
+]
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
