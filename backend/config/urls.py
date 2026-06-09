@@ -19,11 +19,12 @@ from django.urls import path , include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/auth/' , include('apps.authentication.urls')),
+    path('auth/', include('apps.authentication.urls')), # Cambiado de api/auth/ a auth/ para vistas de plantillas
     path('api/patients/' , include('apps.patients.urls')),
     path('api/etl/', include('apps.etl.urls')),
     path('api/analytics/', include('apps.analytics.urls')),
     path('api/ml/', include('apps.ml.urls')),
-    path('api/dashboard/', include('apps.dashboard.urls')),
+    path('dashboard/', include('apps.dashboard.urls')),
     path('api/reports/', include('apps.reports.urls')),
+    path('', include('apps.dashboard.urls')),
 ]
