@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Clínico</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Resumen de Riesgo Clínico</h1>
+
+    <div style="width: 300px; height: 300px;">
+        <canvas id="riskChart"></canvas>
+    </div>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID Paciente</th>
+                <th>Edad</th>
+                <th>IMC</th>
+                <th>Riesgo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for p in patients %}
+            <tr>
+                <td>{{ p.id_paciente }}</td>
+                <td>{{ p.edad }}</td>
+                <td>{{ p.imc }}</td>
+                <td>{{ p.riesgo_enfermedad }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <script>
+        const ctx = document.getElementById('riskChart').getContext('2d');
+        const riskChart = new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Críticos', 'Altos', 'Medios', 'Bajos'],
+                datasets: [{
+                    data: [
+                        {{ stats.criticos }}, 
+                        {{ stats.altos }}, 
+                        {{ stats.medios| default:0 }}, 
+                        {{ stats.bajos| default:0 }}
+                    ],
+                    backgroundColor: ['#ff0000', '#ff9900', '#ffff00', '#00cc00']
+                }]
+            }
+        });
+    </script>
+</body>
+</html>
