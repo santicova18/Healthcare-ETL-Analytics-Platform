@@ -1,0 +1,57 @@
+
+╔════════════════════════════════════════════════════════════╗
+║     RESUMEN DE ENTRENAMIENTO DEL MODELO                    ║
+╚════════════════════════════════════════════════════════════╝
+
+Fecha: v_20260616_124406
+Timestamp: 2026-06-16T12:44:13.013687
+
+DATASET
+─────────────────────────────────────────────────────────────
+  Total de muestras: 1800
+  Muestras de entrenamiento: 2192
+  Muestras de test: 360
+  Features: edad, imc, presion_sistolica, presion_diastolica, glucosa, colesterol
+
+BALANCEO DE CLASES
+─────────────────────────────────────────────────────────────
+  ANTES de SMOTE: {np.str_('Alto'): 171, np.str_('Bajo'): 548, np.str_('Crítico'): 466, np.str_('Medio'): 255}
+  DESPUES de SMOTE: {np.str_('Alto'): 548, np.str_('Bajo'): 548, np.str_('Crítico'): 548, np.str_('Medio'): 548}
+
+DESEMPEÑO
+─────────────────────────────────────────────────────────────
+  Accuracy Train: 99.59%
+  Accuracy Test:  89.17%
+
+METRICAS POR CLASE
+─────────────────────────────────────────────────────────────
+              precision    recall  f1-score   support
+
+        Alto       0.81      0.98      0.88        43
+        Bajo       0.93      0.86      0.89       137
+     Crítico       0.99      0.91      0.95       116
+       Medio       0.74      0.86      0.80        64
+
+    accuracy                           0.89       360
+   macro avg       0.87      0.90      0.88       360
+weighted avg       0.90      0.89      0.89       360
+
+
+TECNICAS APLICADAS
+─────────────────────────────────────────────────────────────
+  [OK] StandardScaler (Escalado de features)
+  [OK] SMOTE (Balanceo de clases minoritarias)
+  [OK] class_weight='balanced' (Penalizacion de errores)
+  [OK] Stratified Split (Proporcion consistente)
+
+ARCHIVOS GENERADOS
+─────────────────────────────────────────────────────────────
+  Modelo: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/risk_model.pkl
+  Scaler: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/scaler.pkl
+  Encoder: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/label_encoder.pkl
+  Matriz de Confusion: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/confusion_matrix.png
+  Feature Importance: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/feature_importance.png
+  Metadatos: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/metadata.json
+  Reporte: C:\Users\Usuario\healthcare-etl-platform\backend\apps\ml\logs\model_versions\v_20260616_124406/classification_report.txt
+
+ESTADO: ENTRENAMIENTO COMPLETADO

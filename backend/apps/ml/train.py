@@ -12,20 +12,26 @@ from sklearn.preprocessing import LabelEncoder, StandardScaler
 from imblearn.over_sampling import SMOTE
 from apps.patients.models import Patient
 import os
+from pathlib import Path
+
+_ML_DIR = Path(__file__).resolve().parent
+_MODELS_DIR = _ML_DIR / "models"
+_LOGS_VERSIONS_DIR = _ML_DIR / "logs" / "model_versions"
+
 
 def train_risk_model():
     try:
         # 0. GENERAR TIMESTAMP PARA VERSIONADO
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         version_name = f"v_{timestamp}"
-        
+
         # Crear directorios de versión
-        version_dir = f'apps/ml/logs/model_versions/{version_name}'
-        os.makedirs(version_dir, exist_ok=True)
-        os.makedirs('apps/ml/models', exist_ok=True)
+        version_dir = _LOGS_VERSIONS_DIR / version_name
+        version_dir.mkdir(parents=True, exist_ok=True)
+        _MODELS_DIR.mkdir(parents=True, exist_ok=True)
         
         print(f"\n{'='*70}")
-        print(f"🚀 ENTRENAMIENTO DE MODELO - {version_name}")
+        print(f"[TRAIN] ENTRENAMIENTO DE MODELO - {version_name}")
         print(f"{'='*70}\n")
 
         # 1. Obtener datos desde la BD (Solo campos numéricos para el ML)
@@ -58,8 +64,8 @@ def train_risk_model():
         sns.heatmap(df_corr.corr(), annot=True, cmap='coolwarm', fmt='.2f')
         plt.title(f"Correlación de Variables Clínicas - {version_name}")
         plt.tight_layout()
-        plt.savefig(f'{version_dir}/correlation_matrix.png', dpi=100)
-        plt.savefig('apps/ml/models/correlation_matrix.png', dpi=100)  # Copiar a actual
+        plt.savefig(version_dir / "correlation_matrix.png", dpi=100)
+        plt.savefig(_MODELS_DIR / "correlation_matrix.png", dpi=100)
         plt.close()
 
         # 5. Preparar Features (X) y Target (y)
@@ -78,7 +84,7 @@ def train_risk_model():
         dist_before = np.bincount(y_train)
         dist_after = np.bincount(y_train_balanced)
         
-        print(f"📊 Distribución de clases:")
+        print(f"Distribucion de clases:")
         print(f"  ANTES de SMOTE: {dict(zip(le.classes_, dist_before))}")
         print(f"  DESPUÉS de SMOTE: {dict(zip(le.classes_, dist_after))}\n")
 
@@ -109,7 +115,7 @@ def train_risk_model():
         
         report = classification_report(y_test, y_pred, target_names=le.classes_, zero_division=0)
         
-        print(f"📈 Métricas de Desempeño:")
+        print(f"Metricas de Desempeno:")
         print(f"  Accuracy Train: {accuracy_train:.2%}")
         print(f"  Accuracy Test:  {accuracy_test:.2%}\n")
 
@@ -120,8 +126,8 @@ def train_risk_model():
         disp.plot(cmap=plt.cm.Blues)
         plt.title(f"Matriz de Confusión - {version_name}")
         plt.tight_layout()
-        plt.savefig(f'{version_dir}/confusion_matrix.png', dpi=100)
-        plt.savefig('apps/ml/models/confusion_matrix.png', dpi=100)  # Copiar a actual
+        plt.savefig(version_dir / "confusion_matrix.png", dpi=100)
+        plt.savefig(_MODELS_DIR / "confusion_matrix.png", dpi=100)
         plt.close()
 
         # 11. Feature Importance
@@ -136,21 +142,20 @@ def train_risk_model():
         plt.xlabel('Importancia')
         plt.title(f'Feature Importance - {version_name}')
         plt.tight_layout()
-        plt.savefig(f'{version_dir}/feature_importance.png', dpi=100)
+        plt.savefig(version_dir / "feature_importance.png", dpi=100)
         plt.close()
 
         # 12. Guardar MODELO (versión actual + histórico)
-        print("💾 Guardando artefactos del modelo...")
+        print("Guardando artefactos del modelo...")
         
         # Guardar en versión con timestamp
-        joblib.dump(model, f'{version_dir}/risk_model.pkl')
-        joblib.dump(scaler, f'{version_dir}/scaler.pkl')
-        joblib.dump(le, f'{version_dir}/label_encoder.pkl')
-        
-        # Guardar en models/ (para que predict.py las use)
-        joblib.dump(model, 'apps/ml/models/risk_model.pkl')
-        joblib.dump(scaler, 'apps/ml/models/scaler.pkl')
-        joblib.dump(le, 'apps/ml/models/label_encoder.pkl')
+        joblib.dump(model, version_dir / "risk_model.pkl")
+        joblib.dump(scaler, version_dir / "scaler.pkl")
+        joblib.dump(le, version_dir / "label_encoder.pkl")
+
+        joblib.dump(model, _MODELS_DIR / "risk_model.pkl")
+        joblib.dump(scaler, _MODELS_DIR / "scaler.pkl")
+        joblib.dump(le, _MODELS_DIR / "label_encoder.pkl")
 
         # 13. Crear archivo de METADATOS (importante para tracking)
         metadata = {
@@ -189,16 +194,15 @@ def train_risk_model():
             ]
         }
         
-        with open(f'{version_dir}/metadata.json', 'w', encoding='utf-8') as f:
+        with open(version_dir / "metadata.json", "w", encoding="utf-8") as f:
             json.dump(metadata, f, indent=2)
-        
-        # 14. Guardar reportes
-        with open(f'{version_dir}/classification_report.txt', 'w', encoding='utf-8') as f:
+
+        with open(version_dir / "classification_report.txt", "w", encoding="utf-8") as f:
             f.write("REPORTE DE CLASIFICACION\n")
             f.write("="*60 + "\n\n")
             f.write(report)
         
-        feature_importance.to_csv(f'{version_dir}/feature_importance.csv', index=False)
+        feature_importance.to_csv(version_dir / "feature_importance.csv", index=False)
         
         # Crear archivo de resumen
         summary = f"""
@@ -250,12 +254,12 @@ ARCHIVOS GENERADOS
 ESTADO: ENTRENAMIENTO COMPLETADO
 """
         
-        with open(f'{version_dir}/RESUMEN.txt', 'w', encoding='utf-8') as f:
+        with open(version_dir / "RESUMEN.txt", "w", encoding="utf-8") as f:
             f.write(summary)
-        
+
         print(summary)
         print(f"\n[OK] Modelo guardado en: {version_dir}")
-        print(f"[OK] Modelo actual actualizado en: apps/ml/models/\n")
+        print(f"[OK] Modelo actual actualizado en: {_MODELS_DIR}\n")
         
         # Persistencia de auditoría en base de datos (solo extender, no reemplazar artefactos)
         try:
@@ -285,8 +289,8 @@ ESTADO: ENTRENAMIENTO COMPLETADO
                     "precision": metrics.get("precision_per_class", {}),
                     "recall": metrics.get("recall_per_class", {}),
                     "f1_score": metrics.get("f1_per_class", {}),
-                    "model_path": f"{version_dir}/risk_model.pkl",
-                    "metadata_path": f"{version_dir}/metadata.json",
+                    "model_path": str(version_dir / "risk_model.pkl"),
+                    "metadata_path": str(version_dir / "metadata.json"),
                     "is_active": True,
                 },
             )
@@ -298,6 +302,6 @@ ESTADO: ENTRENAMIENTO COMPLETADO
         
     except Exception as e:
         import traceback
-        error_msg = f"❌ Error durante el entrenamiento del modelo: {str(e)}\n{traceback.format_exc()}"
+        error_msg = f"Error durante el entrenamiento del modelo: {str(e)}\n{traceback.format_exc()}"
         print(error_msg)
         return error_msg

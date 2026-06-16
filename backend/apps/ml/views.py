@@ -61,10 +61,10 @@ def _safe_artifact_path(base_path: str, artifact_name: str) -> str:
     return base_path.rstrip("/") + "/" + artifact_name
 
 
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+@require_GET
 def model_versions(request):
-    if request.method != "GET":
-        return _json_error("Método no permitido", status=405)
-
     versions = ModelVersion.objects.all().order_by("-created_at")
     payload = []
     for v in versions:
@@ -95,7 +95,7 @@ def model_versions(request):
 @role_required("Administrador", "Médico")
 @require_http_methods(["POST"])
 def predicciones_single(request):
-    """POST /api/predicciones/
+    """POST /api/ml/predicciones/
 
     Valida payload mínimo para ejecutar predicción.
 

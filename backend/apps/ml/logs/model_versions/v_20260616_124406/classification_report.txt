@@ -1,0 +1,13 @@
+REPORTE DE CLASIFICACION
+============================================================
+
+              precision    recall  f1-score   support
+
+        Alto       0.81      0.98      0.88        43
+        Bajo       0.93      0.86      0.89       137
+     Crítico       0.99      0.91      0.95       116
+       Medio       0.74      0.86      0.80        64
+
+    accuracy                           0.89       360
+   macro avg       0.87      0.90      0.88       360
+weighted avg       0.90      0.89      0.89       360

@@ -1,0 +1,72 @@
+{
+  "version": "v_20260616_124406",
+  "timestamp": "2026-06-16T12:44:13.001398",
+  "dataset": {
+    "total_samples": 1800,
+    "train_samples": 2192,
+    "test_samples": 360,
+    "features": [
+      "edad",
+      "imc",
+      "presion_sistolica",
+      "presion_diastolica",
+      "glucosa",
+      "colesterol"
+    ],
+    "classes": [
+      "Alto",
+      "Bajo",
+      "Cr\u00edtico",
+      "Medio"
+    ]
+  },
+  "class_distribution": {
+    "before_smote": {
+      "Alto": 171,
+      "Bajo": 548,
+      "Cr\u00edtico": 466,
+      "Medio": 255
+    },
+    "after_smote": {
+      "Alto": 548,
+      "Bajo": 548,
+      "Cr\u00edtico": 548,
+      "Medio": 548
+    }
+  },
+  "hyperparameters": {
+    "n_estimators": 150,
+    "max_depth": 15,
+    "min_samples_split": 5,
+    "min_samples_leaf": 2,
+    "class_weight": "balanced"
+  },
+  "metrics": {
+    "accuracy_train": 0.9958941605839416,
+    "accuracy_test": 0.8916666666666667,
+    "precision_per_class": {
+      "Alto": 0.8076923076923077,
+      "Bajo": 0.9291338582677166,
+      "Cr\u00edtico": 0.9906542056074766,
+      "Medio": 0.7432432432432432
+    },
+    "recall_per_class": {
+      "Alto": 0.9767441860465116,
+      "Bajo": 0.8613138686131386,
+      "Cr\u00edtico": 0.9137931034482759,
+      "Medio": 0.859375
+    },
+    "f1_per_class": {
+      "Alto": 0.8842105263157894,
+      "Bajo": 0.8939393939393939,
+      "Cr\u00edtico": 0.9506726457399103,
+      "Medio": 0.7971014492753623
+    }
+  },
+  "techniques_applied": [
+    "StandardScaler",
+    "SMOTE",
+    "class_weight='balanced'",
+    "Stratified Train/Test Split"
+  ]
+}
