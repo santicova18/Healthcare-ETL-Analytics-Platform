@@ -15,16 +15,23 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path , include
+from django.urls import include, path
+from django.views.generic import RedirectView
+
+from apps.patients.views import patients_page
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('auth/', include('apps.authentication.urls')), # Cambiado de api/auth/ a auth/ para vistas de plantillas
-    path('api/patients/' , include('apps.patients.urls')),
-    path('api/etl/', include('apps.etl.urls')),
-    path('api/analytics/', include('apps.analytics.urls')),
-    path('api/ml/', include('apps.ml.urls')),
-    path('dashboard/', include('apps.dashboard.urls')),
-    path('api/reports/', include('apps.reports.urls')),
-    path('', include('apps.dashboard.urls')),
+    path("admin/", admin.site.urls),
+    path("api/auth/", include("apps.authentication.urls")),
+    path("api/dashboard/", include("apps.dashboard.urls")),
+    path("api/patients/", include("apps.patients.urls")),
+    path("patients/", patients_page, name="patients_page"),
+    path("api/etl/", include("apps.etl.urls")),
+    path("api/analytics/", include("apps.analytics.urls")),
+    path("api/ml/", include("apps.ml.urls")),
+    path("api/reports/", include("apps.reports.urls")),
+    # Alias legacy para compatibilidad con rutas anteriores
+    path("auth/", include("apps.authentication.urls")),
+    path("dashboard/", include("apps.dashboard.urls")),
+    path("", RedirectView.as_view(url="/dashboard/", permanent=False)),
 ]

@@ -4,7 +4,8 @@ import json
 from typing import Any, Dict
 
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse
+from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.authentication.rbac import role_required
@@ -25,6 +26,13 @@ def _get_optional_filters(request) -> Dict[str, Any]:
         filters["riesgo_enfermedad"] = riesgo
 
     return filters
+
+
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+def patients_page(request):
+    """Página /patients/ — lista y alta vía fetch a /api/patients/."""
+    return render(request, "patients.html", {"user_role": getattr(request.user, "role", "")})
 
 
 @login_required

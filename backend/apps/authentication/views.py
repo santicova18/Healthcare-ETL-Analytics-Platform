@@ -15,7 +15,7 @@ def login_view(request):
     Mantiene toda la lógica de seguridad dentro de apps/authentication.
     """
     if request.user.is_authenticated:
-        return redirect("/api/dashboard/")
+        return redirect("/dashboard/")
 
     if request.method == "POST":
         form = LoginForm(request.POST)
@@ -26,13 +26,13 @@ def login_view(request):
 
             if user is not None:
                 login(request, user)
-                return redirect("/api/dashboard/")
+                return redirect("/dashboard/")
 
             messages.error(request, "Credenciales inválidas.")
     else:
         form = LoginForm()
 
-    return render(request, "authentication/login.html", {"form": form})
+    return render(request, "login.html", {"form": form})
 
 
 def logout_view(request):

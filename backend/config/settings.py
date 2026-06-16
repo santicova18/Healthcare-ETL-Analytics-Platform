@@ -61,10 +61,6 @@ INSTALLED_APPS = [
 # Configuración de Autenticación
 AUTH_USER_MODEL = 'authentication.User'
 
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'dashboard:index'  # Asegúrate de que 'dashboard:index' sea el nombre correcto de tu URL del dashboard
-LOGOUT_REDIRECT_URL = 'login'
-
 # Seguridad de Sesiones (Crucial en entorno clínico)
 SESSION_COOKIE_AGE = 3600  # 1 hora de sesión
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Cerrar al cerrar navegador
@@ -87,7 +83,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -105,9 +101,6 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-
-# Re-definimos BASE_DIR para mantener consistencia con la plantilla, pero sin romper el resto
-BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Leemos una variable de entorno para decidir el motor
 USE_POSTGRES = os.getenv('USE_POSTGRES', 'False') == 'True'
@@ -172,9 +165,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Authentication redirects
 LOGIN_URL = '/api/auth/login/'
-LOGIN_REDIRECT_URL = '/api/dashboard/'
+LOGIN_REDIRECT_URL = '/dashboard/'
 LOGOUT_REDIRECT_URL = '/api/auth/login/'
 

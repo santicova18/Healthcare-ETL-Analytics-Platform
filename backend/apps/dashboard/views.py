@@ -64,5 +64,5 @@ def trends_api(request):
 @role_required("Administrador", "Médico", "Analista")
 def dashboard_view(request):
     # Template ahora consume datos desde APIs (fetch).
-    return render(request, "templates/dashboard/index.html", {})
+    return render(request, "dashboard.html", {})
 

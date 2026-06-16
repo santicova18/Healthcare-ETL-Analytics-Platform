@@ -15,7 +15,10 @@ def auto_predict_risk(sender, instance, **kwargs):
             'glucosa': instance.glucosa,
             'colesterol': instance.colesterol,
         }
-        # Predecir riesgo usando tu modelo entrenado
-        instance.riesgo_enfermedad = predict_risk(patient_data)
+        try:
+            risk_label, _, _ = predict_risk(patient_data)
+            instance.riesgo_enfermedad = str(risk_label)
+        except FileNotFoundError:
+            pass
 
 
