@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — HealthAnalytics IPS{% endblock %}
+
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Dashboard Clínico</h1>
+    <p class="text-muted mb-0">Métricas y visualizaciones en tiempo real</p>
+  </div>
+  <button class="btn btn-outline-primary btn-sm" id="refreshDashboard">
+    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+  </button>
+</div>
+
+<div id="dashboardError" class="alert alert-danger d-none"></div>
+<div id="dashboardLoading" class="text-center py-5">
+  <div class="spinner-border text-primary" role="status"></div>
+  <p class="text-muted mt-2">Cargando datos...</p>
+</div>
+
+<div id="dashboardContent" class="d-none">
+  <div class="row g-3 mb-4" id="kpiCards"></div>
+
+  <div class="row g-3">
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Distribución por Riesgo</strong></div>
+        <div class="card-body"><canvas id="riskChart" height="220"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Distribución por Sexo</strong></div>
+        <div class="card-body"><canvas id="sexChart" height="220"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Edad (grupos)</strong></div>
+        <div class="card-body"><canvas id="ageBar" height="220"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white"><strong>IMC (grupos)</strong></div>
+        <div class="card-body"><canvas id="imcBar" height="220"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Top Diagnósticos</strong></div>
+        <div class="card-body"><canvas id="diagPie" height="220"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="card shadow-sm h-100">
+        <div class="card-header bg-white"><strong>Tendencias (consultas por fecha)</strong></div>
+        <div class="card-body"><canvas id="trendLine" height="220"></canvas></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+
+{% block title %}Pacientes — HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h1 class="h3 mb-1">Pacientes</h1>
+    <p class="text-muted mb-0">Listado clínico y registro de nuevos pacientes</p>
+  </div>
+  <button class="btn btn-outline-primary btn-sm" id="refreshPatients">
+    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+  </button>
+</div>
+
+<div id="patientsError" class="alert alert-danger d-none"></div>
+<div id="patientsSuccess" class="alert alert-success d-none"></div>
+
+{% if user_role == "Administrador" %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header bg-white">
+    <strong><i class="bi bi-person-plus me-1"></i>Nuevo paciente</strong>
+  </div>
+  <div class="card-body">
+    <form id="createPatientForm" class="row g-3">
+      <div class="col-md-2">
+        <label class="form-label">ID</label>
+        <input type="number" class="form-control" name="id_paciente" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Nombres</label>
+        <input type="text" class="form-control" name="nombres" required>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Apellidos</label>
+        <input type="text" class="form-control" name="apellidos" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Edad</label>
+        <input type="number" class="form-control" name="edad" min="0" max="120" required>
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Sexo</label>
+        <select class="form-select" name="sexo" required>
+          <option value="Masculino">Masculino</option>
+          <option value="Femenino">Femenino</option>
+          <option value="Desconocido">Desconocido</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Riesgo</label>
+        <select class="form-select" name="riesgo_enfermedad" required>
+          <option value="Bajo">Bajo</option>
+          <option value="Medio">Medio</option>
+          <option value="Alto">Alto</option>
+          <option value="Crítico">Crítico</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Diagnóstico preliminar</label>
+        <input type="text" class="form-control" name="diagnostico_preliminar" value="Evaluación inicial">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Fecha consulta</label>
+        <input type="date" class="form-control" name="fecha_consulta" required>
+      </div>
+      <div class="col-md-3 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100" id="createPatientBtn">
+          <i class="bi bi-plus-lg me-1"></i>Crear paciente
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">
+  <i class="bi bi-info-circle me-1"></i>Solo usuarios con rol <strong>Administrador</strong> pueden crear pacientes.
+</div>
+{% endif %}
+
+<div class="card shadow-sm">
+  <div class="card-header bg-white d-flex justify-content-between align-items-center">
+    <strong><i class="bi bi-table me-1"></i>Listado</strong>
+    <span class="badge bg-secondary" id="patientCount">0</span>
+  </div>
+  <div class="card-body p-0">
+    <div id="patientsLoading" class="text-center py-5">
+      <div class="spinner-border text-primary" role="status"></div>
+    </div>
+    <div class="table-responsive d-none" id="patientsTableWrap">
+      <table class="table table-hover table-striped mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Edad</th>
+            <th>Sexo</th>
+            <th>IMC</th>
+            <th>Riesgo</th>
+            <th>Glucosa</th>
+            <th>Presión</th>
+            <th>Fecha consulta</th>
+          </tr>
+        </thead>
+        <tbody id="patientsTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script>
+  window.USER_ROLE = "{{ user_role }}";
+</script>
+<script src="{% static 'js/patients.js' %}"></script>
+{% endblock %}

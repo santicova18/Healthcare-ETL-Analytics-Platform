@@ -48,7 +48,7 @@ class Phase5IntegrationSmokeTests(TestCase):
                 nombres="Test",
                 apellidos="Patient",
                 edad=45,
-                sexo="M",
+                sexo="Masculino",
                 peso=80.0,
                 altura=1.75,
                 imc=26.1,
@@ -108,7 +108,7 @@ class Phase5IntegrationSmokeTests(TestCase):
             "patient_id": 1,
         }
         resp = self.client.post(
-            "/api/predicciones/",
+            "/api/ml/predicciones/",
             data=json.dumps(payload),
             content_type="application/json",
         )
@@ -125,7 +125,7 @@ class Phase5IntegrationSmokeTests(TestCase):
             "glucosa": 110.0,
         }
         resp = self.client.post(
-            "/api/predicciones/",
+            "/api/ml/predicciones/",
             data=json.dumps(payload),
             content_type="application/json",
         )

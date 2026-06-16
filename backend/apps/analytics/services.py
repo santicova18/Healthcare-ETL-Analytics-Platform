@@ -1,9 +1,10 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any, Dict, List
 
 import numpy as np
+
+from django.db.models import Q
 
 from apps.patients.models import Patient
 
@@ -31,17 +32,6 @@ def kpis_clinicos() -> Dict[str, Any]:
       sistólica > 180 OR glucosa > 300 OR saturación < 85
     """
     qs = Patient.objects.all()
-
-    # Regla hipertensión
-    hipertensos = qs.filter(
-        # sistólica > 140 OR diastólica > 90
-        # Nota: Django ORM interpreta OR via Q; lo evitamos para mantener simplicidad
-        # usando expresión OR con filtros separados.
-        **{}
-    )
-
-    # Django requires Q objects for OR
-    from django.db.models import Q
 
     hipertensos = qs.filter(Q(presion_sistolica__gt=140) | Q(presion_diastolica__gt=90))
     diabeticos = qs.filter(glucosa__gt=200)
