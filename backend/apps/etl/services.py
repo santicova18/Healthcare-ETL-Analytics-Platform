@@ -227,6 +227,14 @@ def process_clinical_dataset(file_path):
     if 'sexo' in df_limpio.columns:
         df_limpio['sexo'] = df_limpio['sexo'].replace({'m': 'Masculino', 'M': 'Masculino', 'f': 'Femenino', 'F': 'Femenino'})
     
+    # Eliminar filas duplicadas por id_paciente (evita fallo en bulk_create por PK repetida)
+    if 'id_paciente' in df_limpio.columns:
+        antes_dup = len(df_limpio)
+        df_limpio = df_limpio.drop_duplicates(subset=['id_paciente'], keep='last')
+        dup_eliminados = antes_dup - len(df_limpio)
+        if dup_eliminados:
+            print(f"Registros duplicados por id_paciente descartados: {dup_eliminados}")
+
     patients_to_create = []
     
     # Iteración y creación de objetos
@@ -266,8 +274,8 @@ def process_clinical_dataset(file_path):
             print(f"Error procesando paciente ID {row.get('id_paciente')}: {e}")
             continue
 
-    # Inserción masiva
+    print(f"VA A INSERTAR: {len(patients_to_create)} pacientes")
     if patients_to_create:
-        Patient.objects.bulk_create(patients_to_create, ignore_conflicts=True)
-    
+        Patient.objects.bulk_create(patients_to_create)
+
     return len(patients_to_create)
