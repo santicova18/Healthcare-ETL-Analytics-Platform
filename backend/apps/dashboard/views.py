@@ -1,34 +1,68 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from __future__ import annotations
 
-from apps.patients.models import Patient
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.views.decorators.http import require_GET
+
+from apps.authentication.rbac import role_required
+from apps.dashboard.services import (
+    dashboard_kpis,
+    distribucion_por_diagnostico,
+    distribucion_por_riesgo,
+    distribucion_por_sexo,
+    etl_history_summary,
+    heatmap_clinico_risk,
+    predicciones_disponibles,
+    segmentaciones_para_graficas,
+    tendencias_por_fecha,
+)
 
 
 @login_required
-def dashboard_view(request):
-    """Muestra el dashboard.
-
-    Nota: el cálculo del resumen de riesgo vive en apps/analytics (endpoint /risk-summary/).
-    Para mantener la página sin JS adicional, también calculamos stats aquí si no están.
-    """
-
-    patients = Patient.objects.all().order_by("-fecha_consulta")
+@role_required("Administrador", "Médico", "Analista")
+@require_GET
+def kpis_api(request):
+    """GET /api/dashboard/kpis/"""
+    return JsonResponse(dashboard_kpis())
 
 
-    # Resumen de riesgo (por contrato: el cálculo vive en apps/analytics).
-    # Para render server-side sin JS, reutilizamos el conteo aquí como fallback.
-    # En un siguiente paso, el frontend podría consumir /api/analytics/risk-summary/.
-    stats = {
-        "criticos": patients.filter(riesgo_enfermedad="Crítico").count(),
-        "altos": patients.filter(riesgo_enfermedad="Alto").count(),
-        "medios": patients.filter(riesgo_enfermedad="Medio").count(),
-        "bajos": patients.filter(riesgo_enfermedad="Bajo").count(),
-    }
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+@require_GET
+def charts_api(request):
+    """GET /api/dashboard/charts/"""
+    seg = segmentaciones_para_graficas()
 
-
-    return render(
-        request,
-        "templates/dashboard/index.html",
-        {"patients": patients, "stats": stats},
+    return JsonResponse(
+        {
+            "distribucion_riesgo": distribucion_por_riesgo(),
+            "distribucion_sexo": distribucion_por_sexo(),
+            "distribucion_diagnostico": distribucion_por_diagnostico(),
+            "edad_buckets": seg["edad_buckets"],
+            "imc_buckets": seg["imc_buckets"],
+            "heatmap_clinico": heatmap_clinico_risk(),
+            "predicciones": predicciones_disponibles(),
+        }
     )
+
+
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+@require_GET
+def trends_api(request):
+    """GET /api/dashboard/trends/"""
+    return JsonResponse(
+        {
+            "tendencias_pacientes": tendencias_por_fecha(),
+            "etl_history": etl_history_summary(),
+        }
+    )
+
+
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+def dashboard_view(request):
+    # Template ahora consume datos desde APIs (fetch).
+    return render(request, "templates/dashboard/index.html", {})
 

@@ -257,6 +257,43 @@ ESTADO: ENTRENAMIENTO COMPLETADO
         print(f"\n[OK] Modelo guardado en: {version_dir}")
         print(f"[OK] Modelo actual actualizado en: apps/ml/models/\n")
         
+        # Persistencia de auditoría en base de datos (solo extender, no reemplazar artefactos)
+        try:
+            from apps.ml.models import ModelVersion
+
+            ModelVersion.objects.filter(is_active=True).update(is_active=False)
+
+            metadata_features = metadata.get("dataset", {}).get("features", [])
+            metrics = metadata.get("metrics", {})
+            dataset_total = int(metadata.get("dataset", {}).get("total_samples", len(df)))
+
+            # Derivamos accuracy/precision/recall/f1 de los campos existentes en metadata.
+            # accuracy_test no está seteado directamente como accuracy, pero sí está en metrics.
+            accuracy_val = None
+            if "accuracy_test" in metadata.get("metrics", {}):
+                accuracy_val = metadata["metrics"]["accuracy_test"]
+            elif "accuracy_train" in metadata.get("metrics", {}):
+                accuracy_val = metadata["metrics"]["accuracy_train"]
+
+            ModelVersion.objects.update_or_create(
+                version=version_name,
+                defaults={
+                    "algorithm": "RandomForestClassifier",
+                    "dataset_size": dataset_total,
+                    "feature_schema": metadata_features,
+                    "accuracy": accuracy_val,
+                    "precision": metrics.get("precision_per_class", {}),
+                    "recall": metrics.get("recall_per_class", {}),
+                    "f1_score": metrics.get("f1_per_class", {}),
+                    "model_path": f"{version_dir}/risk_model.pkl",
+                    "metadata_path": f"{version_dir}/metadata.json",
+                    "is_active": True,
+                },
+            )
+        except Exception as db_e:
+            # No abortar el entrenamiento; la trazabilidad en disco ya existe.
+            print(f"[WARN] Persistencia ModelVersion falló: {db_e}")
+
         return summary
         
     except Exception as e:

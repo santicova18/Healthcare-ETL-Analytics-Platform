@@ -4,52 +4,232 @@
     <meta charset="UTF-8">
     <title>Dashboard Clínico</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .card { padding: 12px; border: 1px solid #ddd; border-radius: 8px; background: #fff; }
+        canvas { background: #fff; }
+        h3 { margin-top: 0; }
+    </style>
 </head>
 <body>
-    <h1>Resumen de Riesgo Clínico</h1>
+    <h1>Dashboard Clínico (Datos por APIs)</h1>
 
-    <div style="width: 300px; height: 300px;">
-        <canvas id="riskChart"></canvas>
+    <div class="grid">
+        <div class="card">
+            <h3>KPIs</h3>
+            <ul>
+                <li>Total pacientes: <span id="kpiTotal">0</span></li>
+                <li>Críticos: <span id="kpiCriticos">0</span></li>
+                <li>Hipertensos: <span id="kpiHipertensos">0</span></li>
+                <li>Diabéticos: <span id="kpiDiabeticos">0</span></li>
+                <li>Fumadores: <span id="kpiFumadores">0</span></li>
+                <li>Riesgo promedio: <span id="kpiRiesgoProm">0</span></li>
+            </ul>
+        </div>
+
+        <div class="card">
+            <h3>Predicciones disponibles</h3>
+            <div>Count: <span id="predCount">0</span></div>
+        </div>
     </div>
 
-    <table>
-        <thead>
-            <tr>
-                <th>ID Paciente</th>
-                <th>Edad</th>
-                <th>IMC</th>
-                <th>Riesgo</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for p in patients %}
-            <tr>
-                <td>{{ p.id_paciente }}</td>
-                <td>{{ p.edad }}</td>
-                <td>{{ p.imc }}</td>
-                <td>{{ p.riesgo_enfermedad }}</td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+    <div class="grid" style="margin-top: 24px;">
+        <div class="card">
+            <h3>Distribución por Riesgo</h3>
+            <canvas id="riskChart" height="240"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Distribución por Sexo</h3>
+            <canvas id="sexChart" height="240"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Edad (buckets)</h3>
+            <canvas id="ageBar" height="240"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>IMC (buckets)</h3>
+            <canvas id="imcBar" height="240"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Top Diagnósticos</h3>
+            <canvas id="diagPie" height="240"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Tendencias (pacientes por fecha)</h3>
+            <canvas id="trendLine" height="240"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>Heatmap clínico (Sistólica vs Glucosa)</h3>
+            <canvas id="heatmap" height="320"></canvas>
+        </div>
+
+        <div class="card">
+            <h3>ETL History (registros procesados)</h3>
+            <canvas id="etlLine" height="240"></canvas>
+        </div>
+    </div>
 
     <script>
-        const ctx = document.getElementById('riskChart').getContext('2d');
-        const riskChart = new Chart(ctx, {
-            type: 'doughnut',
-            data: {
-                labels: ['Críticos', 'Altos', 'Medios', 'Bajos'],
-                datasets: [{
-                    data: [
-                        {{ stats.criticos }}, 
-                        {{ stats.altos }}, 
-                        {{ stats.medios| default:0 }}, 
-                        {{ stats.bajos| default:0 }}
-                    ],
-                    backgroundColor: ['#ff0000', '#ff9900', '#ffff00', '#00cc00']
-                }]
+        async function getJSON(url) {
+            const res = await fetch(url, { credentials: 'include' });
+            if (!res.ok) throw new Error(`HTTP ${res.status} - ${url}`);
+            return await res.json();
+        }
+
+        function mkDoughnut(canvas, labels, data, colors) {
+            return new Chart(canvas, {
+                type: 'doughnut',
+                data: {
+                    labels,
+                    datasets: [{
+                        data,
+                        backgroundColor: colors
+                    }]
+                },
+                options: { responsive: true }
+            });
+        }
+
+        function mkBar(canvas, labels, data) {
+            return new Chart(canvas, {
+                type: 'bar',
+                data: { labels, datasets: [{ label: 'Pacientes', data }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function mkLine(canvas, labels, data) {
+            return new Chart(canvas, {
+                type: 'line',
+                data: { labels, datasets: [{ label: 'Pacientes', data, borderWidth: 2 }] },
+                options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+        }
+
+        function mkPie(canvas, labels, data) {
+            return new Chart(canvas, {
+                type: 'pie',
+                data: { labels, datasets: [{ data }] },
+                options: { responsive: true }
+            });
+        }
+
+        function drawHeatmap(canvas, sistLabels, glucLabels, matrix) {
+            const ctx = canvas.getContext('2d');
+            const w = canvas.width;
+            const h = canvas.height;
+            ctx.clearRect(0, 0, w, h);
+
+            const rows = sistLabels.length;
+            const cols = glucLabels.length;
+            const cellW = w / cols;
+            const cellH = h / rows;
+
+            // scale colors by max value
+            let max = 0;
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    max = Math.max(max, matrix[i][j] || 0);
+                }
             }
+            if (max === 0) max = 1;
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const v = matrix[i][j] || 0;
+                    const t = v / max; // 0..1
+                    const r = Math.floor(255 * t);
+                    const g = Math.floor(255 * (1 - t));
+                    const color = `rgb(${r},${g},0)`;
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(j * cellW, i * cellH, cellW - 2, cellH - 2);
+
+                    ctx.fillStyle = '#000';
+                    ctx.font = '12px Arial';
+                    ctx.fillText(String(v), j * cellW + 6, i * cellH + 20);
+                }
+            }
+
+            // labels (approx.)
+            ctx.fillStyle = '#111';
+            ctx.font = '12px Arial';
+            for (let j = 0; j < cols; j++) {
+                ctx.fillText(glucLabels[j], j * cellW + 5, h - 8);
+            }
+            for (let i = 0; i < rows; i++) {
+                ctx.fillText(sistLabels[i], 4, i * cellH + 20);
+            }
+        }
+
+        (async () => {
+            const base = '/api/dashboard';
+
+            const [kpis, charts, trends] = await Promise.all([
+                getJSON(base + '/kpis/'),
+                getJSON(base + '/charts/'),
+                getJSON(base + '/trends/'),
+            ]);
+
+            // KPIs
+            document.getElementById('kpiTotal').textContent = kpis.total_pacientes ?? 0;
+            document.getElementById('kpiCriticos').textContent = kpis.pacientes_criticos ?? 0;
+            document.getElementById('kpiHipertensos').textContent = kpis.hipertensos ?? 0;
+            document.getElementById('kpiDiabeticos').textContent = kpis.diabeticos ?? 0;
+            document.getElementById('kpiFumadores').textContent = kpis.fumadores ?? 0;
+            document.getElementById('kpiRiesgoProm').textContent = kpis.riesgo_promedio ?? 0;
+            document.getElementById('predCount').textContent = charts.predicciones?.count ?? 0;
+
+            // Risk doughnut
+            const risk = charts.distribucion_riesgo;
+            mkDoughnut(
+                document.getElementById('riskChart'),
+                risk.labels,
+                risk.data,
+                ['#ff0000', '#ff9900', '#ffff00', '#00cc00']
+            );
+
+            // Sex doughnut
+            const sex = charts.distribucion_sexo;
+            mkDoughnut(
+                document.getElementById('sexChart'),
+                sex.labels,
+                sex.data,
+                ['#3366ff', '#ff66aa', '#999999']
+            );
+
+            // Age bar
+            mkBar(document.getElementById('ageBar'), charts.edad_buckets.labels, charts.edad_buckets.data);
+
+            // IMC bar
+            mkBar(document.getElementById('imcBar'), charts.imc_buckets.labels, charts.imc_buckets.data);
+
+            // Diagnóstico pie
+            mkPie(document.getElementById('diagPie'), charts.distribucion_diagnostico.labels, charts.distribucion_diagnostico.data);
+
+            // Trends line
+            mkLine(document.getElementById('trendLine'), trends.tendencias_pacientes.labels, trends.tendencias_pacientes.data);
+
+            // ETL history line
+            mkLine(document.getElementById('etlLine'), trends.etl_history.labels, trends.etl_history.data);
+
+            // Heatmap
+            const hm = charts.heatmap_clinico;
+            const heatmapCanvas = document.getElementById('heatmap');
+            heatmapCanvas.width = 760;
+            heatmapCanvas.height = 360;
+            drawHeatmap(heatmapCanvas, hm.sist_labels, hm.gluc_labels, hm.matrix);
+        })().catch(err => {
+            console.error(err);
+            alert('Error cargando Dashboard: ' + err.message);
         });
     </script>
 </body>
 </html>
+

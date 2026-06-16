@@ -17,8 +17,11 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Carga las variables desde el archivo .env (si existe)
-# Usar ruta absoluta para asegurar que se cargue aunque el script se ejecute desde otro directorio
-load_dotenv(dotenv_path=BASE_DIR.parent / ".env")
+# Cargar de forma determinista y evitar sobreescrituras.
+# Preferir el .env en la raíz del repo y usar fallback si está en backend/.
+load_dotenv(dotenv_path=BASE_DIR.parent / ".env", override=False)
+load_dotenv(dotenv_path=BASE_DIR / ".env", override=False)
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
@@ -52,7 +55,7 @@ INSTALLED_APPS = [
     'apps.analytics',
     'apps.reports',
     'apps.dashboard',
-
+    'apps.integration_tests',
 ]
 
 # Configuración de Autenticación
@@ -67,7 +70,7 @@ SESSION_COOKIE_AGE = 3600  # 1 hora de sesión
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True  # Cerrar al cerrar navegador
 SESSION_COOKIE_HTTPONLY = True  # Protege contra XSS
 
-]
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
