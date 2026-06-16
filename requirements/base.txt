@@ -11,3 +11,4 @@ reportlab>=4.0
 matplotlib>=3.8
 seaborn>=0.13
 psycopg2-binary>=2.9
+whitenoise==6.7.0
