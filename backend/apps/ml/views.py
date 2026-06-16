@@ -30,12 +30,10 @@ def _require_fields(payload: dict, fields: list[str]) -> None:
 
 @login_required
 @role_required("Administrador", "Médico")
-@require_http_methods(["POST"])
+@require_GET
 def model_info(request):
-    if request.method != "GET":
-        return _json_error("Método no permitido", status=405)
-
     version = ModelVersion.objects.filter(is_active=True).order_by("-created_at").first()
+
     if version is None:
         return _json_error("No hay modelo activo", status=404)
 
