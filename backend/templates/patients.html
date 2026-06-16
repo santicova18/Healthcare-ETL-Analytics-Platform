@@ -16,7 +16,7 @@
 <div id="patientsError" class="alert alert-danger d-none"></div>
 <div id="patientsSuccess" class="alert alert-success d-none"></div>
 
-{% if user_role == "Administrador" %}
+{% if user_role == "Administrador" or user_role == "Médico" %}
 <div class="card shadow-sm mb-4">
   <div class="card-header bg-white">
     <strong><i class="bi bi-person-plus me-1"></i>Nuevo paciente</strong>
@@ -72,9 +72,9 @@
     </form>
   </div>
 </div>
-{% else %}
+{% elif user_role == "Analista" %}
 <div class="alert alert-info">
-  <i class="bi bi-info-circle me-1"></i>Solo usuarios con rol <strong>Administrador</strong> pueden crear pacientes.
+  <i class="bi bi-info-circle me-1"></i>Rol <strong>Analista</strong>: acceso de solo lectura al listado de pacientes.
 </div>
 {% endif %}
 
@@ -100,6 +100,9 @@
             <th>Glucosa</th>
             <th>Presión</th>
             <th>Fecha consulta</th>
+            {% if user_role == "Administrador" or user_role == "Médico" %}
+            <th>Acciones</th>
+            {% endif %}
           </tr>
         </thead>
         <tbody id="patientsTableBody"></tbody>
@@ -107,12 +110,73 @@
     </div>
   </div>
 </div>
+
+{% if user_role == "Administrador" or user_role == "Médico" %}
+<div class="modal fade" id="editPatientModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Editar paciente</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editPatientForm">
+        <div class="modal-body row g-3">
+          <input type="hidden" name="id_paciente" id="editId">
+          <div class="col-md-6">
+            <label class="form-label">Nombres</label>
+            <input type="text" class="form-control" name="nombres" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Apellidos</label>
+            <input type="text" class="form-control" name="apellidos" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Edad</label>
+            <input type="number" class="form-control" name="edad" min="0" max="120" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Sexo</label>
+            <select class="form-select" name="sexo" required>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Desconocido">Desconocido</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Riesgo</label>
+            <select class="form-select" name="riesgo_enfermedad" required>
+              <option value="Bajo">Bajo</option>
+              <option value="Medio">Medio</option>
+              <option value="Alto">Alto</option>
+              <option value="Crítico">Crítico</option>
+            </select>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Diagnóstico preliminar</label>
+            <input type="text" class="form-control" name="diagnostico_preliminar">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label">Fecha consulta</label>
+            <input type="date" class="form-control" name="fecha_consulta" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="editPatientBtn">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}
 {% load static %}
 <script>
   window.USER_ROLE = "{{ user_role }}";
+  window.CAN_DELETE_PATIENTS = ("{{ user_role }}" === "Administrador");
+  window.CAN_EDIT_PATIENTS = (window.USER_ROLE === "Administrador" || window.USER_ROLE === "Médico");
 </script>
 <script src="{% static 'js/patients.js' %}"></script>
 {% endblock %}

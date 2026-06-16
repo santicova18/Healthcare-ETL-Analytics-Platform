@@ -18,7 +18,10 @@ from django.contrib import admin
 from django.urls import include, path
 from django.views.generic import RedirectView
 
+from apps.etl.views import etl_page
+from apps.ml.views import ml_page
 from apps.patients.views import patients_page
+from apps.reports.views import reports_page
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -27,9 +30,12 @@ urlpatterns = [
     path("api/patients/", include("apps.patients.urls")),
     path("patients/", patients_page, name="patients_page"),
     path("api/etl/", include("apps.etl.urls")),
+    path("etl/", etl_page, name="etl_page"),
     path("api/analytics/", include("apps.analytics.urls")),
     path("api/ml/", include("apps.ml.urls")),
+    path("ml/", ml_page, name="ml_page"),
     path("api/reports/", include("apps.reports.urls")),
+    path("reports/", reports_page, name="reports_page"),
     # Alias legacy para compatibilidad con rutas anteriores
     path("auth/", include("apps.authentication.urls")),
     path("dashboard/", include("apps.dashboard.urls")),

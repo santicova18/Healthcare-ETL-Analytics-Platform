@@ -45,7 +45,27 @@
       throw new Error(body.error || 'No autorizado para esta acción');
     }
     if (!res.ok) {
-      throw new Error(body.error || 'HTTP ' + res.status);
+      throw new Error(body.error || body.details || 'HTTP ' + res.status);
+    }
+    return body;
+  }
+
+  async function apiPostForm(url, formData) {
+    const res = await fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Accept: 'application/json',
+        'X-CSRFToken': getCsrfToken(),
+      },
+      body: formData,
+    });
+    const body = await res.json().catch(() => ({}));
+    if (res.status === 403) {
+      throw new Error(body.error || 'No autorizado para esta acción');
+    }
+    if (!res.ok) {
+      throw new Error(body.error || body.details || 'HTTP ' + res.status);
     }
     return body;
   }
@@ -67,6 +87,7 @@
     getCsrfToken,
     apiGet,
     apiPostJson,
+    apiPostForm,
     showError,
     hideError,
   };

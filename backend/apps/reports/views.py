@@ -3,6 +3,7 @@ from io import BytesIO, StringIO
 
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
+from django.shortcuts import render
 
 from apps.authentication.rbac import role_required
 from apps.patients.models import Patient
@@ -26,6 +27,13 @@ else:
     openpyxl_available = True
 
 import datetime
+
+
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+def reports_page(request):
+    """Página /reports/ — exportaciones vía endpoints existentes."""
+    return render(request, "reports.html")
 
 
 @login_required

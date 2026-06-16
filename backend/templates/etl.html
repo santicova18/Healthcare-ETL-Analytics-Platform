@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}ETL — HealthAnalytics IPS{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="h3 mb-1">Proceso ETL</h1>
+  <p class="text-muted mb-0">Carga y procesamiento de datasets clínicos (CSV o XLSX)</p>
+</div>
+
+<div id="etlError" class="alert alert-danger d-none"></div>
+<div id="etlSuccess" class="alert alert-success d-none"></div>
+
+<div class="card shadow-sm">
+  <div class="card-header bg-white">
+    <strong><i class="bi bi-upload me-1"></i>Ejecutar ETL</strong>
+  </div>
+  <div class="card-body">
+    <form id="etlForm">
+      <div class="mb-3">
+        <label class="form-label">Archivo de datos</label>
+        <input type="file" class="form-control" id="etlFile" name="file" accept=".csv,.xlsx,.xls">
+        <div class="form-text">Formatos soportados: CSV, XLSX. Si no selecciona archivo, se usa el dataset por defecto del servidor.</div>
+      </div>
+      <button type="submit" class="btn btn-primary" id="etlRunBtn">
+        <i class="bi bi-play-fill me-1"></i>Ejecutar ETL
+      </button>
+    </form>
+    <div id="etlResult" class="mt-4 d-none">
+      <hr>
+      <p class="mb-1"><strong>Registros procesados:</strong> <span id="etlRecords">-</span></p>
+      <p class="mb-0"><strong>Tiempo (s):</strong> <span id="etlElapsed">-</span></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{% load static %}
+<script src="{% static 'js/etl.js' %}"></script>
+{% endblock %}

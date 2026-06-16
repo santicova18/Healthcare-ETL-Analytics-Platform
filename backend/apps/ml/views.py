@@ -4,6 +4,7 @@ import json
 
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_http_methods
 
 from apps.authentication.rbac import role_required
@@ -26,6 +27,22 @@ def _require_fields(payload: dict, fields: list[str]) -> None:
     missing = [f for f in fields if f not in payload or payload[f] in (None, "")]
     if missing:
         raise ValueError(f"Faltan campos: {', '.join(missing)}")
+
+
+@login_required
+@role_required("Administrador", "Médico", "Analista")
+def ml_page(request):
+    """Página /ml/ — secciones clínicas y analíticas según rol."""
+    role = getattr(request.user, "role", "")
+    return render(
+        request,
+        "ml.html",
+        {
+            "user_role": role,
+            "show_clinical": role in {"Administrador", "Médico"},
+            "show_analyst": role in {"Administrador", "Analista"},
+        },
+    )
 
 
 @login_required
@@ -62,7 +79,7 @@ def _safe_artifact_path(base_path: str, artifact_name: str) -> str:
 
 
 @login_required
-@role_required("Administrador", "Médico", "Analista")
+@role_required("Administrador", "Analista")
 @require_GET
 def model_versions(request):
     versions = ModelVersion.objects.all().order_by("-created_at")
