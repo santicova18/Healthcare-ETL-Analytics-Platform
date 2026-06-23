@@ -1,39 +1,43 @@
 (function () {
-  const canEdit = window.CAN_EDIT_PATIENTS === true;
-  const canDelete = window.CAN_DELETE_PATIENTS === true;
-  let patientsCache = [];
-  let editModal = null;
+  var canEdit = window.CAN_EDIT_PATIENTS === true;
+  var canDelete = window.CAN_DELETE_PATIENTS === true;
+  var patientsCache = [];
+  var editModal = null;
+  var addModal = null;
+  var predictionModal = null;
 
   function riskBadge(riesgo) {
-    const map = {
+    var map = {
       'Crítico': 'danger',
       'Alto': 'warning',
       'Medio': 'info',
       'Bajo': 'success',
     };
-    const cls = map[riesgo] || 'secondary';
+    var cls = map[riesgo] || 'secondary';
     return '<span class="badge bg-' + cls + '">' + (riesgo || '-') + '</span>';
   }
 
   function actionButtons(p) {
     if (!canEdit) return '';
-    let html = '<button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit" data-id="' + p.id_paciente + '"><i class="bi bi-pencil"></i></button>';
+    var html = '<button type="button" class="btn btn-sm btn-outline-primary me-1 btn-edit" data-id="' + p.id_paciente + '" title="Editar"><i class="bi bi-pencil"></i></button>';
     if (canDelete) {
-      html += '<button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="' + p.id_paciente + '"><i class="bi bi-trash"></i></button>';
+      html += '<button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="' + p.id_paciente + '" title="Eliminar"><i class="bi bi-trash"></i></button>';
     }
     return html;
   }
 
   function renderTable(results) {
-    const tbody = document.getElementById('patientsTableBody');
-    const countEl = document.getElementById('patientCount');
+    var tbody = document.getElementById('patientsTableBody');
+    var countEl = document.getElementById('patientCount');
     if (!tbody) return;
 
     patientsCache = results;
     countEl.textContent = results.length;
 
-    const baseCols = 22; // id + (nombre/apellidos separadas) + campos clínicos + acciones
-    const colSpan = canEdit ? baseCols + 1 : baseCols;
+    // Ordenar por ID ascendente
+    results.sort(function(a, b) { return a.id_paciente - b.id_paciente; });
+
+    var colSpan = canEdit ? 13 : 12;
 
     if (!results.length) {
       tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-center text-muted py-4">No hay pacientes registrados</td></tr>';
@@ -43,45 +47,106 @@
     tbody.innerHTML = results.map(function (p) {
       return (
         '<tr>' +
-          '<td>' + p.id_paciente + '</td>' +
-          '<td>' + (p.nombres ?? '-') + '</td>' +
-          '<td>' + (p.apellidos ?? '-') + '</td>' +
-          '<td>' + (p.edad ?? '-') + '</td>' +
-          '<td>' + (p.sexo ?? '-') + '</td>' +
-          '<td>' + (p.peso ?? '-') + '</td>' +
-          '<td>' + (p.altura ?? '-') + '</td>' +
-          '<td>' + (p.imc ?? '-') + '</td>' +
-          '<td>' + (p.presion_sistolica ?? '-') + '</td>' +
-          '<td>' + (p.presion_diastolica ?? '-') + '</td>' +
-          '<td>' + (p.frecuencia_cardiaca ?? '-') + '</td>' +
-          '<td>' + (p.glucosa ?? '-') + '</td>' +
-          '<td>' + (p.colesterol ?? '-') + '</td>' +
-          '<td>' + (p.saturacion_oxigeno ?? '-') + '</td>' +
-          '<td>' + (p.temperatura ?? '-') + '</td>' +
-          '<td>' + (p.antecedentes_familiares ?? '-') + '</td>' +
-          '<td>' + (p.fumador ?? '-') + '</td>' +
-          '<td>' + (p.consumo_alcohol ?? '-') + '</td>' +
-          '<td>' + (p.actividad_fisica ?? '-') + '</td>' +
-          '<td>' + (p.diagnostico_preliminar ?? '-') + '</td>' +
+          '<td><a href="#" class="text-primary text-decoration-none fw-semibold patient-id-link" data-id="' + p.id_paciente + '" title="Ver predicción de riesgo">' + p.id_paciente + '</a></td>' +
+          '<td>' + (p.nombres || '-') + '</td>' +
+          '<td>' + (p.apellidos || '-') + '</td>' +
+          '<td>' + (p.edad || '-') + '</td>' +
+          '<td>' + (p.sexo || '-') + '</td>' +
+          '<td>' + (p.imc != null ? Number(p.imc).toFixed(1) : '-') + '</td>' +
+          '<td>' + (p.presion_sistolica || '-') + '</td>' +
+          '<td>' + (p.presion_diastolica || '-') + '</td>' +
+          '<td>' + (p.glucosa != null ? Number(p.glucosa).toFixed(0) : '-') + '</td>' +
+          '<td>' + (p.colesterol != null ? Number(p.colesterol).toFixed(0) : '-') + '</td>' +
           '<td>' + riskBadge(p.riesgo_enfermedad) + '</td>' +
-          '<td>' + (p.fecha_consulta ?? '-') + '</td>' +
-          (canEdit ? '<td>' + actionButtons(p) + '</td>' : '') +
+          '<td class="text-nowrap">' + (p.fecha_consulta || '-') + '</td>' +
+          (canEdit ? '<td class="text-nowrap">' + actionButtons(p) + '</td>' : '') +
         '</tr>'
       );
     }).join('');
 
+    // Handlers para botones de editar
     tbody.querySelectorAll('.btn-edit').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
         openEditModal(parseInt(btn.dataset.id, 10));
       });
     });
+
+    // Handlers para botones de eliminar
     tbody.querySelectorAll('.btn-delete').forEach(function (btn) {
-      btn.addEventListener('click', function () {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
         deletePatient(parseInt(btn.dataset.id, 10));
+      });
+    });
+
+    // Handlers para click en ID → predicción
+    tbody.querySelectorAll('.patient-id-link').forEach(function (link) {
+      link.addEventListener('click', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        var id = parseInt(link.dataset.id, 10);
+        showPrediction(id);
       });
     });
   }
 
+  // ─── Modal de predicción ───
+  function showPrediction(id) {
+    var patient = patientsCache.find(function (x) { return x.id_paciente === id; });
+    if (!patient) return;
+
+    if (!predictionModal) {
+      predictionModal = new bootstrap.Modal(document.getElementById('predictionModal'));
+    }
+
+    document.getElementById('predPatientId').textContent = '#' + id + ' — ' + (patient.nombres || '') + ' ' + (patient.apellidos || '');
+    document.getElementById('predictionLoading').classList.remove('d-none');
+    document.getElementById('predictionResult').classList.add('d-none');
+    document.getElementById('predictionError').classList.add('d-none');
+    predictionModal.show();
+
+    var payload = {
+      edad: patient.edad || 30,
+      imc: patient.imc || 25,
+      presion_sistolica: patient.presion_sistolica || 120,
+      presion_diastolica: patient.presion_diastolica || 80,
+      glucosa: patient.glucosa || 100,
+      colesterol: patient.colesterol || 190,
+      patient_id: id,
+    };
+
+    HealthAPI.apiPostJson('/api/ml/predicciones/', payload)
+      .then(function (data) {
+        document.getElementById('predictionLoading').classList.add('d-none');
+        document.getElementById('predictionResult').classList.remove('d-none');
+
+        var riesgo = data.riesgo_enfermedad;
+        var badgeCls = { 'Crítico': 'danger', 'Alto': 'warning', 'Medio': 'info', 'Bajo': 'success' }[riesgo] || 'secondary';
+        document.getElementById('predRiskBadge').innerHTML = '<span class="badge bg-' + badgeCls + ' fs-5">' + riesgo + '</span>';
+        document.getElementById('predConfidence').textContent = (data.confidence * 100).toFixed(1) + '%';
+
+        var probs = data.probabilidades || {};
+        var probHtml = '<div class="progress" style="height:22px;">';
+        var colors = { 'Crítico': 'bg-danger', 'Alto': 'bg-warning', 'Medio': 'bg-info', 'Bajo': 'bg-success' };
+        var total = 0;
+        Object.keys(probs).forEach(function (k) { total += probs[k]; });
+        Object.keys(probs).forEach(function (k) {
+          var pct = total > 0 ? (probs[k] / total * 100) : 0;
+          probHtml += '<div class="progress-bar ' + (colors[k] || 'bg-secondary') + '" style="width:' + pct.toFixed(0) + '%" title="' + k + ': ' + pct.toFixed(1) + '%">' + k + ' ' + pct.toFixed(0) + '%</div>';
+        });
+        probHtml += '</div>';
+        document.getElementById('predProbabilities').innerHTML = probHtml;
+      })
+      .catch(function (err) {
+        document.getElementById('predictionLoading').classList.add('d-none');
+        var errEl = document.getElementById('predictionError');
+        errEl.textContent = 'Error: ' + (err.message || 'No se pudo obtener la predicción. Verifique que el modelo esté entrenado.');
+        errEl.classList.remove('d-none');
+      });
+  }
+
+  // ─── Helpers IMC ───
   function calcImc(peso, altura) {
     if (peso > 0 && altura > 0) {
       return Math.round((peso / (altura * altura)) * 100) / 100;
@@ -106,32 +171,33 @@
     }
   }
 
+  // ─── Modal Editar ───
   function openEditModal(id) {
-    const p = patientsCache.find(function (x) { return x.id_paciente === id; });
+    var p = patientsCache.find(function (x) { return x.id_paciente === id; });
     if (!p) return;
-    const form = document.getElementById('editPatientForm');
+    var form = document.getElementById('editPatientForm');
     if (!form) return;
     document.getElementById('editId').value = p.id_paciente;
-    form.nombres.value = p.nombres;
-    form.apellidos.value = p.apellidos;
-    form.edad.value = p.edad;
-    form.sexo.value = p.sexo;
-    form.peso.value = p.peso;
-    form.altura.value = p.altura;
-    form.presion_sistolica.value = p.presion_sistolica;
-    form.presion_diastolica.value = p.presion_diastolica;
-    form.frecuencia_cardiaca.value = p.frecuencia_cardiaca;
-    form.glucosa.value = p.glucosa;
-    form.colesterol.value = p.colesterol;
-    form.saturacion_oxigeno.value = p.saturacion_oxigeno;
-    form.temperatura.value = p.temperatura;
+    form.nombres.value = p.nombres || '';
+    form.apellidos.value = p.apellidos || '';
+    form.edad.value = p.edad || '';
+    form.sexo.value = p.sexo || 'Masculino';
+    form.peso.value = p.peso || '';
+    form.altura.value = p.altura || '';
+    form.presion_sistolica.value = p.presion_sistolica || '';
+    form.presion_diastolica.value = p.presion_diastolica || '';
+    form.frecuencia_cardiaca.value = p.frecuencia_cardiaca || '';
+    form.glucosa.value = p.glucosa || '';
+    form.colesterol.value = p.colesterol || '';
+    form.saturacion_oxigeno.value = p.saturacion_oxigeno || '';
+    form.temperatura.value = p.temperatura || '';
     form.antecedentes_familiares.value = p.antecedentes_familiares ? 'true' : 'false';
     form.fumador.value = p.fumador ? 'true' : 'false';
     form.consumo_alcohol.value = p.consumo_alcohol ? 'true' : 'false';
     form.actividad_fisica.value = p.actividad_fisica || 'Moderada';
-    form.riesgo_enfermedad.value = p.riesgo_enfermedad;
-    form.diagnostico_preliminar.value = p.diagnostico_preliminar || 'Evaluación inicial';
-    form.fecha_consulta.value = p.fecha_consulta;
+    form.riesgo_enfermedad.value = p.riesgo_enfermedad || 'Bajo';
+    form.diagnostico_preliminar.value = p.diagnostico_preliminar || '';
+    form.fecha_consulta.value = p.fecha_consulta || '';
     var imcEl = document.getElementById('editImc');
     if (imcEl) imcEl.value = p.imc || calcImc(parseFloat(p.peso) || 0, parseFloat(p.altura) || 0);
     if (!editModal) {
@@ -140,31 +206,33 @@
     editModal.show();
   }
 
+  // ─── Búsqueda ───
   function getSearchText() {
-    const el = document.getElementById('patientSearch');
+    var el = document.getElementById('patientSearch');
     return (el && el.value) ? el.value.trim() : '';
   }
 
   function debounce(fn, waitMs) {
-    let t = null;
+    var t = null;
     return function () {
-      const args = arguments;
+      var args = arguments;
       clearTimeout(t);
       t = setTimeout(function () { fn.apply(null, args); }, waitMs);
     };
   }
 
+  // ─── Cargar pacientes ───
   async function loadPatients() {
-    const loading = document.getElementById('patientsLoading');
-    const tableWrap = document.getElementById('patientsTableWrap');
+    var loading = document.getElementById('patientsLoading');
+    var tableWrap = document.getElementById('patientsTableWrap');
     HealthAPI.hideError('patientsError');
     loading.classList.remove('d-none');
     tableWrap.classList.add('d-none');
 
     try {
-      const q = getSearchText();
-      const qs = q ? ('?q=' + encodeURIComponent(q)) : '';
-      const data = await HealthAPI.apiGet('/api/patients/' + qs);
+      var q = getSearchText();
+      var qs = q ? ('?q=' + encodeURIComponent(q)) : '';
+      var data = await HealthAPI.apiGet('/api/patients/' + qs);
       renderTable(data.results || []);
       loading.classList.add('d-none');
       tableWrap.classList.remove('d-none');
@@ -174,10 +242,11 @@
     }
   }
 
+  // ─── Serialización de formularios ───
   function formToPayload(form) {
-    const fd = new FormData(form);
-    const peso = parseFloat(fd.get('peso')) || 70;
-    const altura = parseFloat(fd.get('altura')) || 1.7;
+    var fd = new FormData(form);
+    var peso = parseFloat(fd.get('peso')) || 70;
+    var altura = parseFloat(fd.get('altura')) || 1.7;
     return {
       id_paciente: parseInt(fd.get('id_paciente'), 10),
       nombres: fd.get('nombres'),
@@ -205,9 +274,9 @@
   }
 
   function editFormToPayload(form) {
-    const fd = new FormData(form);
-    const peso = parseFloat(fd.get('peso')) || 70;
-    const altura = parseFloat(fd.get('altura')) || 1.7;
+    var fd = new FormData(form);
+    var peso = parseFloat(fd.get('peso')) || 70;
+    var altura = parseFloat(fd.get('altura')) || 1.7;
     return {
       id_paciente: parseInt(fd.get('id_paciente'), 10),
       nombres: fd.get('nombres'),
@@ -234,61 +303,69 @@
     };
   }
 
+  // ─── Crear paciente ───
   async function createPatient(e) {
     e.preventDefault();
-    const form = e.target;
-    const btn = document.getElementById('createPatientBtn');
-    const successEl = document.getElementById('patientsSuccess');
+    var form = e.target;
+    var btn = document.getElementById('createPatientBtn');
+    var successEl = document.getElementById('patientsSuccess');
     HealthAPI.hideError('patientsError');
     successEl.classList.add('d-none');
     btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Creando...';
 
     try {
-      const payload = formToPayload(form);
+      var payload = formToPayload(form);
       await HealthAPI.apiPostJson('/api/patients/create/', payload);
       form.reset();
-      const dateInput = form.querySelector('[name=fecha_consulta]');
+      var dateInput = form.querySelector('[name=fecha_consulta]');
       if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
-      successEl.textContent = 'Paciente creado correctamente.';
+      successEl.innerHTML = '<i class="bi bi-check-circle me-1"></i>Paciente creado correctamente.';
       successEl.classList.remove('d-none');
+      if (addModal) addModal.hide();
       await loadPatients();
     } catch (err) {
       HealthAPI.showError('patientsError', err.message);
     } finally {
       btn.disabled = false;
+      btn.innerHTML = '<i class="bi bi-plus-lg me-1"></i>Crear paciente';
     }
   }
 
+  // ─── Actualizar paciente ───
   async function updatePatient(e) {
     e.preventDefault();
-    const form = e.target;
-    const btn = document.getElementById('editPatientBtn');
-    const successEl = document.getElementById('patientsSuccess');
+    var form = e.target;
+    var btn = document.getElementById('editPatientBtn');
+    var successEl = document.getElementById('patientsSuccess');
     HealthAPI.hideError('patientsError');
     btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
 
     try {
-      const payload = editFormToPayload(form);
-      const id = payload.id_paciente;
+      var payload = editFormToPayload(form);
+      var id = payload.id_paciente;
       await HealthAPI.apiPostJson('/api/patients/' + id + '/update/', payload);
       if (editModal) editModal.hide();
-      successEl.textContent = 'Paciente actualizado correctamente.';
+      successEl.innerHTML = '<i class="bi bi-check-circle me-1"></i>Paciente actualizado correctamente.';
       successEl.classList.remove('d-none');
       await loadPatients();
     } catch (err) {
       HealthAPI.showError('patientsError', err.message);
     } finally {
       btn.disabled = false;
+      btn.innerHTML = 'Guardar cambios';
     }
   }
 
+  // ─── Eliminar paciente ───
   async function deletePatient(id) {
     if (!confirm('¿Eliminar paciente #' + id + '?')) return;
-    const successEl = document.getElementById('patientsSuccess');
+    var successEl = document.getElementById('patientsSuccess');
     HealthAPI.hideError('patientsError');
     try {
       await HealthAPI.apiPostJson('/api/patients/' + id + '/delete/', {});
-      successEl.textContent = 'Paciente eliminado correctamente.';
+      successEl.innerHTML = '<i class="bi bi-check-circle me-1"></i>Paciente eliminado correctamente.';
       successEl.classList.remove('d-none');
       await loadPatients();
     } catch (err) {
@@ -296,21 +373,35 @@
     }
   }
 
-  const debouncedLoad = debounce(loadPatients, 250);
+  // ─── Event Listeners ───
+  var debouncedLoad = debounce(loadPatients, 250);
   document.getElementById('patientSearch')?.addEventListener('input', debouncedLoad);
   document.getElementById('refreshPatients')?.addEventListener('click', loadPatients);
   document.getElementById('createPatientForm')?.addEventListener('submit', createPatient);
   document.getElementById('editPatientForm')?.addEventListener('submit', updatePatient);
-  // Cargar lista inicial y coherente con el query actual
-  loadPatients();
 
-  const dateInput = document.querySelector('#createPatientForm [name=fecha_consulta]');
+  // Botón "Nuevo paciente" → modal
+  document.getElementById('btnAddPatient')?.addEventListener('click', function () {
+    if (!addModal) {
+      addModal = new bootstrap.Modal(document.getElementById('addPatientModal'));
+    }
+    var form = document.getElementById('createPatientForm');
+    form.reset();
+    var dateInput = form.querySelector('[name=fecha_consulta]');
+    if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
+    addModal.show();
+  });
+
+  // Fecha por defecto en formulario de creación
+  var dateInput = document.querySelector('#createPatientForm [name=fecha_consulta]');
   if (dateInput && !dateInput.value) {
     dateInput.value = new Date().toISOString().split('T')[0];
   }
 
+  // Calcular IMC en ambos formularios
   setupImcCalc('createPatientForm', 'createImc');
   setupImcCalc('editPatientForm', 'editImc');
 
+  // Carga inicial
   loadPatients();
 })();
