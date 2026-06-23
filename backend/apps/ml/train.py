@@ -7,7 +7,16 @@ from datetime import datetime
 import json
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split, StratifiedKFold
-from sklearn.metrics import classification_report, confusion_matrix, ConfusionMatrixDisplay, precision_recall_fscore_support
+from sklearn.metrics import (
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+    precision_recall_fscore_support,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+)
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from imblearn.over_sampling import SMOTE
 from apps.patients.models import Patient
@@ -107,11 +116,25 @@ def train_risk_model():
         
         accuracy_train = (y_pred_train == y_train_balanced).mean()
         accuracy_test = (y_pred == y_test).mean()
-        
+
+        # Métricas globales (weighted) - multiclase
+        precision_weighted_test = precision_score(y_test, y_pred, average='weighted', zero_division=0)
+        recall_weighted_test = recall_score(y_test, y_pred, average='weighted', zero_division=0)
+        f1_weighted_test = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+
+        # AUC-ROC multiclase (One-vs-Rest)
+        auc_roc_weighted_test = roc_auc_score(
+            y_test,
+            y_pred_proba,
+            multi_class='ovr',
+            average='weighted'
+        )
+
         # Métricas por clase
         precision, recall, f1, support = precision_recall_fscore_support(
             y_test, y_pred, zero_division=0
         )
+
         
         report = classification_report(y_test, y_pred, target_names=le.classes_, zero_division=0)
         
@@ -182,6 +205,10 @@ def train_risk_model():
             "metrics": {
                 "accuracy_train": float(accuracy_train),
                 "accuracy_test": float(accuracy_test),
+                "precision_weighted_test": float(precision_weighted_test),
+                "recall_weighted_test": float(recall_weighted_test),
+                "f1_weighted_test": float(f1_weighted_test),
+                "auc_roc_weighted_test": float(auc_roc_weighted_test),
                 "precision_per_class": dict(zip(le.classes_, precision.tolist())),
                 "recall_per_class": dict(zip(le.classes_, recall.tolist())),
                 "f1_per_class": dict(zip(le.classes_, f1.tolist()))
