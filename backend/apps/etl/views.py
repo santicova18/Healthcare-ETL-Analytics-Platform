@@ -85,7 +85,9 @@ def etl_run(request):
     payload: Dict[str, Any] = {}
     content_type = request.content_type or ""
     # Solo intentar parsear JSON si el content-type es application/json
-    if request.body and "application/json" in content_type:
+    # IMPORTANTE: content_type se verifica PRIMERO para evitar RawPostDataException
+    # en requests multipart (cuyo body ya fue consumido por CSRF middleware).
+    if "application/json" in content_type and request.body:
         try:
             payload = json.loads(request.body.decode("utf-8"))
         except Exception:
