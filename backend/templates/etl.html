@@ -28,8 +28,24 @@
     </form>
     <div id="etlResult" class="mt-4 d-none">
       <hr>
-      <p class="mb-1"><strong>Registros procesados:</strong> <span id="etlRecords">-</span></p>
-      <p class="mb-0"><strong>Tiempo (s):</strong> <span id="etlElapsed">-</span></p>
+      <div class="row">
+        <div class="col-md-3">
+          <p class="mb-1"><strong>Registros procesados:</strong></p>
+          <span id="etlRecords" class="fs-5 fw-semibold">-</span>
+        </div>
+        <div class="col-md-3">
+          <p class="mb-1"><strong>Insertados:</strong></p>
+          <span id="etlInserted" class="fs-5 fw-semibold text-success">-</span>
+        </div>
+        <div class="col-md-3">
+          <p class="mb-1"><strong>Duplicados:</strong></p>
+          <span id="etlDuplicates" class="fs-5 fw-semibold text-warning">-</span>
+        </div>
+        <div class="col-md-3">
+          <p class="mb-1"><strong>Tiempo (s):</strong></p>
+          <span id="etlElapsed" class="fs-5 fw-semibold">-</span>
+        </div>
+      </div>
     </div>
   </div>
 </div>

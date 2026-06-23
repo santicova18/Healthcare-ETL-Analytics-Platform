@@ -236,7 +236,7 @@ def process_clinical_dataset(file_path, original_filename=None):
 
     # ---- Lectura del archivo ----
     try:
-        if file_path.lower().endswith(".xlsx"):
+        if file_path.lower().endswith(".xlsx") or file_path.lower().endswith(".xls"):
             df = pd.read_excel(file_path, engine="openpyxl")
         elif file_path.lower().endswith(".csv"):
             try:
@@ -254,7 +254,8 @@ def process_clinical_dataset(file_path, original_filename=None):
                 df = pd.read_csv(file_path, sep=None, engine="python")
     except Exception as e:
         print(f"[ERROR] Error al leer el archivo {file_path}: {e}")
-        return {"processed": 0, "inserted": 0, "duplicates": 0, "dataset_duplicate": False}
+        traceback.print_exc()
+        return {"processed": 0, "inserted": 0, "duplicates": 0, "dataset_duplicate": False, "error": f"Error al leer el archivo: {str(e)}"}
 
     # ---- Limpieza y reparación ----
     try:

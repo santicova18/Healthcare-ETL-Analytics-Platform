@@ -44,11 +44,21 @@ def _resolve_file_path(request, payload: Dict[str, Any]) -> tuple[str | None, st
                 tmp.write(chunk)
             tmp.flush()
             return tmp.name, None
+        except Exception:
+            # Limpiar archivo temporal si falla la escritura
+            try:
+                os.unlink(tmp.name)
+            except OSError:
+                pass
+            return None, "Error al guardar el archivo subido."
         finally:
             tmp.close()
 
+    # Si no hay upload, buscar file_path en payload JSON o usar dataset por defecto
     default_dataset = settings.BASE_DIR.parent / "dataset" / "dataset_clinico_etl_1800_registros.xlsx"
     file_path = payload.get("file_path", str(default_dataset))
+    if not os.path.exists(file_path):
+        return None, f"Archivo no encontrado: {file_path}"
     return file_path, None
 
 
@@ -73,7 +83,9 @@ def etl_run(request):
     """
 
     payload: Dict[str, Any] = {}
-    if request.body and not request.FILES:
+    content_type = request.content_type or ""
+    # Solo intentar parsear JSON si el content-type es application/json
+    if request.body and "application/json" in content_type:
         try:
             payload = json.loads(request.body.decode("utf-8"))
         except Exception:
@@ -81,7 +93,7 @@ def etl_run(request):
 
     file_path, upload_error = _resolve_file_path(request, payload)
     if upload_error:
-        return _json_error(upload_error)
+        return _json_error(upload_error, status=400)
 
     temp_upload = request.FILES.get("file") is not None
     original_filename = request.FILES.get("file").name if request.FILES.get("file") else None
