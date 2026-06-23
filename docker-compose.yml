@@ -1,0 +1,39 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: healthanalytics
+      POSTGRES_USER: healthanalytics
+      POSTGRES_PASSWORD: healthanalytics_secret
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U healthanalytics -d healthanalytics"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SECRET_KEY: django-insecure-docker-change-in-production
+      USE_POSTGRES: "True"
+      DB_NAME: healthanalytics
+      DB_USER: healthanalytics
+      DB_PASSWORD: healthanalytics_secret
+      DB_HOST: db
+      DB_PORT: "5432"
+      DEBUG: "False"
+    command: >
+      sh -c "cd backend && python manage.py migrate --noinput &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 4"
+
+volumes:
+  postgres_data:
