@@ -15,6 +15,10 @@
     .kpi-card.critical { border-left-color: #dc3545; }
     .kpi-card.warning { border-left-color: #ffc107; }
     .kpi-card.success { border-left-color: #198754; }
+    .sticky-top thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 2; }
+    .patient-id-link { cursor: pointer; transition: color 0.15s; }
+    .patient-id-link:hover { color: #0a58ca !important; text-decoration: underline !important; }
+    .table-sm td, .table-sm th { white-space: nowrap; }
   </style>
   {% block extra_head %}{% endblock %}
 </head>

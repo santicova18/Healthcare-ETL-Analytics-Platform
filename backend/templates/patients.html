@@ -3,164 +3,40 @@
 {% block title %}Pacientes — HealthAnalytics IPS{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3">
   <div>
-    <h1 class="h3 mb-1">Pacientes</h1>
-    <p class="text-muted mb-0">Listado clínico y registro de nuevos pacientes</p>
+    <h1 class="h4 mb-1">Pacientes</h1>
+    <p class="text-muted small mb-0">Listado clínico y gestión de pacientes</p>
   </div>
-  <button class="btn btn-outline-primary btn-sm" id="refreshPatients">
-    <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
-  </button>
+  <div class="d-flex gap-2">
+    {% if user_role == "Administrador" or user_role == "Médico" %}
+    <button class="btn btn-primary btn-sm" id="btnAddPatient">
+      <i class="bi bi-person-plus me-1"></i>Nuevo paciente
+    </button>
+    {% endif %}
+    <button class="btn btn-outline-secondary btn-sm" id="refreshPatients">
+      <i class="bi bi-arrow-clockwise me-1"></i>Actualizar
+    </button>
+  </div>
 </div>
 
 <div id="patientsError" class="alert alert-danger d-none"></div>
 <div id="patientsSuccess" class="alert alert-success d-none"></div>
 
-{% if user_role == "Administrador" or user_role == "Médico" %}
-<div class="card shadow-sm mb-4">
-  <div class="card-header bg-white">
-    <strong><i class="bi bi-person-plus me-1"></i>Nuevo paciente</strong>
-  </div>
-  <div class="card-body">
-    <form id="createPatientForm" class="row g-3">
-      <div class="col-12"><hr class="my-1"><strong>Identificación</strong></div>
-      <div class="col-md-2">
-        <label class="form-label">ID</label>
-        <input type="number" class="form-control" name="id_paciente" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Nombres</label>
-        <input type="text" class="form-control" name="nombres" required>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Apellidos</label>
-        <input type="text" class="form-control" name="apellidos" required>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Edad</label>
-        <input type="number" class="form-control" name="edad" min="0" max="120" required>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Sexo</label>
-        <select class="form-select" name="sexo" required>
-          <option value="Masculino">Masculino</option>
-          <option value="Femenino">Femenino</option>
-          <option value="Desconocido">Desconocido</option>
-        </select>
-      </div>
-      <div class="col-12"><hr class="my-1"><strong>Datos clínicos</strong></div>
-      <div class="col-md-2">
-        <label class="form-label">Peso (kg)</label>
-        <input type="number" step="0.1" class="form-control" name="peso" min="1" max="500" value="70">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Altura (m)</label>
-        <input type="number" step="0.01" class="form-control" name="altura" min="0.3" max="2.5" value="1.7">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">IMC</label>
-        <input type="text" class="form-control" name="imc" id="createImc" readonly>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Presión sistólica</label>
-        <input type="number" class="form-control" name="presion_sistolica" min="60" max="250" value="120">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Presión diastólica</label>
-        <input type="number" class="form-control" name="presion_diastolica" min="40" max="180" value="80">
-      </div>
-      <div class="col-12"><hr class="my-1"><strong>Signos vitales</strong></div>
-      <div class="col-md-2">
-        <label class="form-label">Frec. cardíaca</label>
-        <input type="number" class="form-control" name="frecuencia_cardiaca" min="30" max="250" value="72">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Glucosa</label>
-        <input type="number" step="0.1" class="form-control" name="glucosa" min="10" max="600" value="90">
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Colesterol</label>
-        <input type="number" step="0.1" class="form-control" name="colesterol" min="50" max="500" value="180">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Saturación O₂ (%)</label>
-        <input type="number" step="0.1" class="form-control" name="saturacion_oxigeno" min="50" max="100" value="98">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Temperatura (°C)</label>
-        <input type="number" step="0.1" class="form-control" name="temperatura" min="34" max="42" value="36.5">
-      </div>
-      <div class="col-12"><hr class="my-1"><strong>Antecedentes y hábitos</strong></div>
-      <div class="col-md-2">
-        <label class="form-label">Antec. familiares</label>
-        <select class="form-select" name="antecedentes_familiares">
-          <option value="false">No</option>
-          <option value="true">Sí</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Fumador</label>
-        <select class="form-select" name="fumador">
-          <option value="false">No</option>
-          <option value="true">Sí</option>
-        </select>
-      </div>
-      <div class="col-md-2">
-        <label class="form-label">Consumo alcohol</label>
-        <select class="form-select" name="consumo_alcohol">
-          <option value="false">No</option>
-          <option value="true">Sí</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Actividad física</label>
-        <select class="form-select" name="actividad_fisica">
-          <option value="Baja">Baja</option>
-          <option value="Moderada" selected>Moderada</option>
-          <option value="Alta">Alta</option>
-        </select>
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Riesgo</label>
-        <select class="form-select" name="riesgo_enfermedad" required>
-          <option value="Bajo">Bajo</option>
-          <option value="Medio">Medio</option>
-          <option value="Alto">Alto</option>
-          <option value="Crítico">Crítico</option>
-        </select>
-      </div>
-      <div class="col-12"><hr class="my-1"><strong>Diagnóstico</strong></div>
-      <div class="col-md-4">
-        <label class="form-label">Diagnóstico preliminar</label>
-        <input type="text" class="form-control" name="diagnostico_preliminar" value="Evaluación inicial">
-      </div>
-      <div class="col-md-3">
-        <label class="form-label">Fecha consulta</label>
-        <input type="date" class="form-control" name="fecha_consulta" required>
-      </div>
-      <div class="col-md-3 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100" id="createPatientBtn">
-          <i class="bi bi-plus-lg me-1"></i>Crear paciente
-        </button>
-      </div>
-    </form>
-  </div>
-</div>
-{% elif user_role == "Analista" %}
-<div class="alert alert-info">
+{% if user_role == "Analista" %}
+<div class="alert alert-info py-2 small">
   <i class="bi bi-info-circle me-1"></i>Rol <strong>Analista</strong>: acceso de solo lectura al listado de pacientes.
 </div>
 {% endif %}
 
   <div class="card shadow-sm">
-  <div class="card-header bg-white">
-    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3">
+  <div class="card-header bg-white py-2">
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
       <div>
-        <strong><i class="bi bi-table me-1"></i>Listado</strong>
+        <strong class="small"><i class="bi bi-table me-1"></i>Listado</strong>
         <span class="badge bg-secondary ms-2" id="patientCount">0</span>
       </div>
-
-      <div class="input-group" style="max-width: 520px;">
+      <div class="input-group input-group-sm" style="max-width: 400px;">
         <span class="input-group-text bg-white"><i class="bi bi-search"></i></span>
         <input id="patientSearch" type="text" class="form-control" placeholder="Buscar por nombres y apellidos...">
       </div>
@@ -171,34 +47,24 @@
       <div class="spinner-border text-primary" role="status"></div>
     </div>
 
-    <div class="table-responsive d-none" id="patientsTableWrap" style="overflow-x:auto;">
-      <table class="table table-hover table-striped mb-0">
-        <thead class="table-light">
+    <div class="table-responsive d-none" id="patientsTableWrap" style="overflow-x:auto; max-height:70vh; overflow-y:auto;">
+      <table class="table table-hover table-sm mb-0" style="font-size:0.8rem;">
+        <thead class="table-light sticky-top">
           <tr>
-            <th>ID</th>
-            <th>Nombres</th>
-            <th>Apellidos</th>
-            <th>Edad</th>
-            <th>Sexo</th>
-            <th>Peso</th>
-            <th>Altura</th>
-            <th>IMC</th>
-            <th>Presión sistólica</th>
-            <th>Presión diastólica</th>
-            <th>Frecuencia cardiaca</th>
-            <th>Glucosa</th>
-            <th>Colesterol</th>
-            <th>Saturación oxígeno</th>
-            <th>Temperatura</th>
-            <th>Antecedentes familiares</th>
-            <th>Fumador</th>
-            <th>Consumo alcohol</th>
-            <th>Actividad física</th>
-            <th>Diagnóstico preliminar</th>
-            <th>Riesgo</th>
-            <th>Fecha consulta</th>
+            <th class="text-nowrap">ID</th>
+            <th class="text-nowrap">Nombres</th>
+            <th class="text-nowrap">Apellidos</th>
+            <th class="text-nowrap">Edad</th>
+            <th class="text-nowrap">Sexo</th>
+            <th class="text-nowrap">IMC</th>
+            <th class="text-nowrap">Pres. Sist.</th>
+            <th class="text-nowrap">Pres. Diast.</th>
+            <th class="text-nowrap">Glucosa</th>
+            <th class="text-nowrap">Colest.</th>
+            <th class="text-nowrap">Riesgo</th>
+            <th class="text-nowrap">Fecha</th>
             {% if user_role == "Administrador" or user_role == "Médico" %}
-            <th>Acciones</th>
+            <th class="text-nowrap">Acc.</th>
             {% endif %}
           </tr>
         </thead>
@@ -209,136 +75,302 @@
 </div>
 
 {% if user_role == "Administrador" or user_role == "Médico" %}
-<div class="modal fade" id="editPatientModal" tabindex="-1">
-  <div class="modal-dialog modal-lg">
+{# ─── Modal: Nuevo Paciente ─── #}
+<div class="modal fade" id="addPatientModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
     <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Editar paciente</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      <div class="modal-header bg-primary text-white py-2">
+        <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Nuevo paciente</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form id="editPatientForm">
-        <div class="modal-body row g-3">
-          <input type="hidden" name="id_paciente" id="editId">
-          <div class="col-12"><hr class="my-1"><strong>Identificación</strong></div>
-          <div class="col-md-6">
-            <label class="form-label">Nombres</label>
-            <input type="text" class="form-control" name="nombres" required>
+      <form id="createPatientForm">
+        <div class="modal-body row g-2">
+          <div class="col-12"><hr class="my-1"><strong class="small">Identificación</strong></div>
+          <div class="col-md-2">
+            <label class="form-label small">ID</label>
+            <input type="number" class="form-control form-control-sm" name="id_paciente" required>
           </div>
-          <div class="col-md-6">
-            <label class="form-label">Apellidos</label>
-            <input type="text" class="form-control" name="apellidos" required>
+          <div class="col-md-3">
+            <label class="form-label small">Nombres</label>
+            <input type="text" class="form-control form-control-sm" name="nombres" required>
           </div>
-          <div class="col-md-4">
-            <label class="form-label">Edad</label>
-            <input type="number" class="form-control" name="edad" min="0" max="120" required>
+          <div class="col-md-3">
+            <label class="form-label small">Apellidos</label>
+            <input type="text" class="form-control form-control-sm" name="apellidos" required>
           </div>
-          <div class="col-md-4">
-            <label class="form-label">Sexo</label>
-            <select class="form-select" name="sexo" required>
+          <div class="col-md-2">
+            <label class="form-label small">Edad</label>
+            <input type="number" class="form-control form-control-sm" name="edad" min="0" max="120" required>
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Sexo</label>
+            <select class="form-select form-select-sm" name="sexo" required>
               <option value="Masculino">Masculino</option>
               <option value="Femenino">Femenino</option>
               <option value="Desconocido">Desconocido</option>
             </select>
           </div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Datos clínicos</strong></div>
+          <div class="col-md-2">
+            <label class="form-label small">Peso (kg)</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="peso" min="1" max="500" value="70">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Altura (m)</label>
+            <input type="number" step="0.01" class="form-control form-control-sm" name="altura" min="0.3" max="2.5" value="1.7">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">IMC</label>
+            <input type="text" class="form-control form-control-sm" name="imc" id="createImc" readonly>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Presión sistólica</label>
+            <input type="number" class="form-control form-control-sm" name="presion_sistolica" min="60" max="250" value="120">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Presión diastólica</label>
+            <input type="number" class="form-control form-control-sm" name="presion_diastolica" min="40" max="180" value="80">
+          </div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Signos vitales</strong></div>
+          <div class="col-md-2">
+            <label class="form-label small">Frec. cardíaca</label>
+            <input type="number" class="form-control form-control-sm" name="frecuencia_cardiaca" min="30" max="250" value="72">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Glucosa</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="glucosa" min="10" max="600" value="90">
+          </div>
+          <div class="col-md-2">
+            <label class="form-label small">Colesterol</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="colesterol" min="50" max="500" value="180">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Saturación O₂ (%)</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="saturacion_oxigeno" min="50" max="100" value="98">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Temperatura (°C)</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="temperatura" min="34" max="42" value="36.5">
+          </div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Antecedentes y hábitos</strong></div>
+          <div class="col-md-3">
+            <label class="form-label small">Antec. familiares</label>
+            <select class="form-select form-select-sm" name="antecedentes_familiares">
+              <option value="false">No</option>
+              <option value="true">Sí</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Fumador</label>
+            <select class="form-select form-select-sm" name="fumador">
+              <option value="false">No</option>
+              <option value="true">Sí</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Consumo alcohol</label>
+            <select class="form-select form-select-sm" name="consumo_alcohol">
+              <option value="false">No</option>
+              <option value="true">Sí</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Actividad física</label>
+            <select class="form-select form-select-sm" name="actividad_fisica">
+              <option value="Baja">Baja</option>
+              <option value="Moderada" selected>Moderada</option>
+              <option value="Alta">Alta</option>
+            </select>
+          </div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Diagnóstico</strong></div>
           <div class="col-md-4">
-            <label class="form-label">Riesgo</label>
-            <select class="form-select" name="riesgo_enfermedad" required>
+            <label class="form-label small">Diagnóstico preliminar</label>
+            <input type="text" class="form-control form-control-sm" name="diagnostico_preliminar" value="Evaluación inicial">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label small">Riesgo</label>
+            <select class="form-select form-select-sm" name="riesgo_enfermedad" required>
               <option value="Bajo">Bajo</option>
               <option value="Medio">Medio</option>
               <option value="Alto">Alto</option>
               <option value="Crítico">Crítico</option>
             </select>
           </div>
-          <div class="col-12"><hr class="my-1"><strong>Datos clínicos</strong></div>
           <div class="col-md-3">
-            <label class="form-label">Peso (kg)</label>
-            <input type="number" step="0.1" class="form-control" name="peso" min="1" max="500">
+            <label class="form-label small">Fecha consulta</label>
+            <input type="date" class="form-control form-control-sm" name="fecha_consulta" required>
+          </div>
+        </div>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary" id="createPatientBtn">
+            <i class="bi bi-plus-lg me-1"></i>Crear paciente
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ─── Modal: Editar Paciente ─── #}
+<div class="modal fade" id="editPatientModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white py-2">
+        <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Editar paciente</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="editPatientForm">
+        <div class="modal-body row g-2">
+          <input type="hidden" name="id_paciente" id="editId">
+          <div class="col-12"><hr class="my-1"><strong class="small">Identificación</strong></div>
+          <div class="col-md-6">
+            <label class="form-label small">Nombres</label>
+            <input type="text" class="form-control form-control-sm" name="nombres" required>
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small">Apellidos</label>
+            <input type="text" class="form-control form-control-sm" name="apellidos" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Edad</label>
+            <input type="number" class="form-control form-control-sm" name="edad" min="0" max="120" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Sexo</label>
+            <select class="form-select form-select-sm" name="sexo" required>
+              <option value="Masculino">Masculino</option>
+              <option value="Femenino">Femenino</option>
+              <option value="Desconocido">Desconocido</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label small">Riesgo</label>
+            <select class="form-select form-select-sm" name="riesgo_enfermedad" required>
+              <option value="Bajo">Bajo</option>
+              <option value="Medio">Medio</option>
+              <option value="Alto">Alto</option>
+              <option value="Crítico">Crítico</option>
+            </select>
+          </div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Datos clínicos</strong></div>
+          <div class="col-md-3">
+            <label class="form-label small">Peso (kg)</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="peso" min="1" max="500">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Altura (m)</label>
-            <input type="number" step="0.01" class="form-control" name="altura" min="0.3" max="2.5">
+            <label class="form-label small">Altura (m)</label>
+            <input type="number" step="0.01" class="form-control form-control-sm" name="altura" min="0.3" max="2.5">
           </div>
           <div class="col-md-3">
-            <label class="form-label">IMC</label>
-            <input type="text" class="form-control" name="imc" id="editImc" readonly>
+            <label class="form-label small">IMC</label>
+            <input type="text" class="form-control form-control-sm" name="imc" id="editImc" readonly>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Presión sistólica</label>
-            <input type="number" class="form-control" name="presion_sistolica" min="60" max="250">
+            <label class="form-label small">Presión sistólica</label>
+            <input type="number" class="form-control form-control-sm" name="presion_sistolica" min="60" max="250">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Presión diastólica</label>
-            <input type="number" class="form-control" name="presion_diastolica" min="40" max="180">
+            <label class="form-label small">Presión diastólica</label>
+            <input type="number" class="form-control form-control-sm" name="presion_diastolica" min="40" max="180">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Frec. cardíaca</label>
-            <input type="number" class="form-control" name="frecuencia_cardiaca" min="30" max="250">
+            <label class="form-label small">Frec. cardíaca</label>
+            <input type="number" class="form-control form-control-sm" name="frecuencia_cardiaca" min="30" max="250">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Glucosa</label>
-            <input type="number" step="0.1" class="form-control" name="glucosa" min="10" max="600">
+            <label class="form-label small">Glucosa</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="glucosa" min="10" max="600">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Colesterol</label>
-            <input type="number" step="0.1" class="form-control" name="colesterol" min="50" max="500">
+            <label class="form-label small">Colesterol</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="colesterol" min="50" max="500">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Saturación O₂ (%)</label>
-            <input type="number" step="0.1" class="form-control" name="saturacion_oxigeno" min="50" max="100">
+            <label class="form-label small">Saturación O₂ (%)</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="saturacion_oxigeno" min="50" max="100">
           </div>
           <div class="col-md-3">
-            <label class="form-label">Temperatura (°C)</label>
-            <input type="number" step="0.1" class="form-control" name="temperatura" min="34" max="42">
+            <label class="form-label small">Temperatura (°C)</label>
+            <input type="number" step="0.1" class="form-control form-control-sm" name="temperatura" min="34" max="42">
           </div>
-          <div class="col-12"><hr class="my-1"><strong>Antecedentes y hábitos</strong></div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Antecedentes y hábitos</strong></div>
           <div class="col-md-3">
-            <label class="form-label">Antec. familiares</label>
-            <select class="form-select" name="antecedentes_familiares">
+            <label class="form-label small">Antec. familiares</label>
+            <select class="form-select form-select-sm" name="antecedentes_familiares">
               <option value="false">No</option>
               <option value="true">Sí</option>
             </select>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Fumador</label>
-            <select class="form-select" name="fumador">
+            <label class="form-label small">Fumador</label>
+            <select class="form-select form-select-sm" name="fumador">
               <option value="false">No</option>
               <option value="true">Sí</option>
             </select>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Consumo alcohol</label>
-            <select class="form-select" name="consumo_alcohol">
+            <label class="form-label small">Consumo alcohol</label>
+            <select class="form-select form-select-sm" name="consumo_alcohol">
               <option value="false">No</option>
               <option value="true">Sí</option>
             </select>
           </div>
           <div class="col-md-3">
-            <label class="form-label">Actividad física</label>
-            <select class="form-select" name="actividad_fisica">
+            <label class="form-label small">Actividad física</label>
+            <select class="form-select form-select-sm" name="actividad_fisica">
               <option value="Baja">Baja</option>
               <option value="Moderada">Moderada</option>
               <option value="Alta">Alta</option>
             </select>
           </div>
-          <div class="col-12"><hr class="my-1"><strong>Diagnóstico</strong></div>
+          <div class="col-12"><hr class="my-1"><strong class="small">Diagnóstico</strong></div>
           <div class="col-md-6">
-            <label class="form-label">Diagnóstico preliminar</label>
-            <input type="text" class="form-control" name="diagnostico_preliminar">
+            <label class="form-label small">Diagnóstico preliminar</label>
+            <input type="text" class="form-control form-control-sm" name="diagnostico_preliminar">
           </div>
           <div class="col-md-6">
-            <label class="form-label">Fecha consulta</label>
-            <input type="date" class="form-control" name="fecha_consulta" required>
+            <label class="form-label small">Fecha consulta</label>
+            <input type="date" class="form-control form-control-sm" name="fecha_consulta" required>
           </div>
         </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="editPatientBtn">Guardar cambios</button>
+        <div class="modal-footer py-2">
+          <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-sm btn-primary" id="editPatientBtn">Guardar cambios</button>
         </div>
       </form>
     </div>
   </div>
 </div>
 {% endif %}
+
+{# ─── Modal: Predicción de Riesgo ─── #}
+<div class="modal fade" id="predictionModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-info text-white py-2">
+        <h5 class="modal-title"><i class="bi bi-cpu me-2"></i>Predicción de Riesgo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-center py-3">
+        <div id="predictionLoading" class="py-3">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2 small">Calculando predicción...</p>
+        </div>
+        <div id="predictionResult" class="d-none">
+          <p class="mb-2 small text-muted">Paciente <strong id="predPatientId">-</strong></p>
+          <div id="predRiskBadge" class="mb-2"></div>
+          <p class="mb-1 small">Confianza: <strong id="predConfidence">-</strong></p>
+          <div class="mt-3" id="predProbabilities"></div>
+        </div>
+        <div id="predictionError" class="d-none alert alert-danger py-2 small"></div>
+      </div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 
 {% block extra_js %}
