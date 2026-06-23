@@ -8,6 +8,8 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET, require_http_methods
 
+from django.db.models import Q
+
 from apps.authentication.rbac import role_required
 from apps.patients.models import Patient
 from apps.patients.serializers import validate_patient_payload
@@ -25,6 +27,14 @@ def _get_optional_filters(request) -> Dict[str, Any]:
     if riesgo:
         filters["riesgo_enfermedad"] = riesgo
 
+    # Búsqueda por nombre/apellidos (texto libre)
+    q = request.GET.get("q")
+    if q:
+        q = q.strip()
+        # Coincidencia parcial combinada: (nombres o apellidos) o nombre completo.
+        # Usamos OR para que cualquier coincidencia parcial aparezca.
+        filters["_q"] = q
+
     return filters
 
 
@@ -39,18 +49,27 @@ def patients_page(request):
 @role_required("Administrador", "Médico", "Analista")
 @require_GET
 def pacientes_list(request):
-    """GET /api/pacientes/
+    """GET /api/patients/
 
     Read-only clinical for Médico/Analista, total access for Administrador.
     """
     filters = _get_optional_filters(request)
 
     qs = Patient.objects.all().order_by("-fecha_consulta")
-    if filters:
-        qs = qs.filter(**filters)
+
+    # Aplicar filtro de riesgo directamente (si existe)
+    if "riesgo_enfermedad" in filters:
+        qs = qs.filter(riesgo_enfermedad=filters["riesgo_enfermedad"])
+
+    # Búsqueda libre (q) sobre nombres/apellidos (parcial, case-insensitive)
+    q_val = filters.get("_q")
+    if q_val:
+        qs = qs.filter(
+            Q(nombres__icontains=q_val) | Q(apellidos__icontains=q_val)
+        )
 
     # Respuesta consistente (JSON)
-    data = []
+    data: list[dict[str, Any]] = []
     for p in qs[:500]:  # límite preventivo
         data.append(
             {
@@ -59,13 +78,23 @@ def pacientes_list(request):
                 "apellidos": p.apellidos,
                 "edad": p.edad,
                 "sexo": p.sexo,
+                "peso": p.peso,
+                "altura": p.altura,
                 "imc": p.imc,
-                "riesgo_enfermedad": p.riesgo_enfermedad,
-                "fecha_consulta": p.fecha_consulta,
                 "presion_sistolica": p.presion_sistolica,
                 "presion_diastolica": p.presion_diastolica,
+                "frecuencia_cardiaca": p.frecuencia_cardiaca,
                 "glucosa": p.glucosa,
+                "colesterol": p.colesterol,
+                "saturacion_oxigeno": p.saturacion_oxigeno,
+                "temperatura": p.temperatura,
+                "antecedentes_familiares": p.antecedentes_familiares,
+                "fumador": p.fumador,
+                "consumo_alcohol": p.consumo_alcohol,
+                "actividad_fisica": p.actividad_fisica,
                 "diagnostico_preliminar": p.diagnostico_preliminar,
+                "riesgo_enfermedad": p.riesgo_enfermedad,
+                "fecha_consulta": p.fecha_consulta.isoformat(),
             }
         )
 
