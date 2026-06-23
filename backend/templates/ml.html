@@ -87,8 +87,15 @@
         <strong><i class="bi bi-mortarboard me-1"></i>Entrenamiento</strong>
       </div>
       <div class="card-body">
-        <p class="text-muted mb-2">No existe endpoint HTTP de entrenamiento en el backend.</p>
-        <p class="mb-0"><code>python manage.py train_model</code></p>
+        <p class="text-muted mb-3">Entrena un nuevo modelo con todos los pacientes registrados.</p>
+        <button class="btn btn-success w-100" id="trainBtn">
+          <i class="bi bi-mortarboard-fill me-1"></i>Entrenar modelo
+        </button>
+        <div id="trainSpinner" class="text-center d-none mt-3">
+          <div class="spinner-border text-success" role="status"></div>
+          <p class="text-muted mt-1 mb-0">Entrenando modelo, espere...</p>
+        </div>
+        <div id="trainResult" class="mt-3 d-none"></div>
       </div>
     </div>
   </div>

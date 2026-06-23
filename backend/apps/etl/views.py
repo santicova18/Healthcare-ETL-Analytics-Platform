@@ -59,10 +59,17 @@ def etl_run(request):
     """POST /api/etl/run/
 
     Ejecuta ETL cargando el dataset y persistiendo pacientes.
+    Detecta datasets duplicados por hash SHA256 y pacientes duplicados por id_paciente.
 
     Input:
       - multipart: file (CSV/XLSX)
       - JSON optional: file_path (ruta local en servidor)
+
+    Output (dataset nuevo):
+      { "processed": N, "inserted": N, "duplicates": N, "dataset_duplicate": false, "ok": true, ... }
+
+    Output (dataset ya procesado):
+      { "success": false, "reason": "dataset_already_processed" }
     """
 
     payload: Dict[str, Any] = {}
@@ -77,47 +84,47 @@ def etl_run(request):
         return _json_error(upload_error)
 
     temp_upload = request.FILES.get("file") is not None
+    original_filename = request.FILES.get("file").name if request.FILES.get("file") else None
 
     start = time.time()
 
-    run = ETLRun.objects.create(
-        user=request.user,
-        records_processed=0,
-        elapsed_seconds=0.0,
-        status=ETLRun.Status.OK,
-        message="",
-    )
-
     try:
         if not os.path.exists(file_path):
-            run.status = ETLRun.Status.FAIL
-            run.message = "file_path no existe en el servidor"
-            run.finished_at = timezone.now()
-            run.save(update_fields=["status", "message", "finished_at"])
             return _json_error("file_path no existe en el servidor", status=400)
 
-        created = process_clinical_dataset(file_path)
+        result = process_clinical_dataset(file_path, original_filename=original_filename)
         elapsed = round(time.time() - start, 3)
 
-        run.records_processed = int(created)
-        run.elapsed_seconds = float(elapsed)
-        run.status = ETLRun.Status.OK
-        run.message = ""
-        run.finished_at = timezone.now()
-        run.save(
-            update_fields=[
-                "records_processed",
-                "elapsed_seconds",
-                "status",
-                "message",
-                "finished_at",
-            ]
+        # Dataset duplicado (Nivel 1)
+        if isinstance(result, dict) and result.get("reason") == "dataset_already_processed":
+            return JsonResponse(
+                {"success": False, "reason": "dataset_already_processed"},
+                status=409,
+            )
+
+        # Procesamiento exitoso
+        processed = result.get("processed", 0)
+        inserted = result.get("inserted", 0)
+        duplicates = result.get("duplicates", 0)
+
+        run = ETLRun.objects.create(
+            user=request.user,
+            records_processed=inserted,
+            elapsed_seconds=float(elapsed),
+            status=ETLRun.Status.OK,
+            message="",
         )
+
+        dup_pct = round(duplicates / processed * 100, 2) if processed else 0.0
 
         return JsonResponse(
             {
                 "ok": True,
-                "records_created": created,
+                "processed": processed,
+                "inserted": inserted,
+                "duplicates": duplicates,
+                "duplicate_percentage": dup_pct,
+                "dataset_duplicate": False,
                 "elapsed_seconds": elapsed,
                 "etl_run_id": run.id,
             },
@@ -125,13 +132,17 @@ def etl_run(request):
         )
     except Exception as e:
         import traceback
+
         traceback.print_exc()
         elapsed = round(time.time() - start, 3)
-        run.status = ETLRun.Status.FAIL 
-        run.elapsed_seconds = float(elapsed)
-        run.message = traceback.format_exc()
-        run.finished_at = timezone.now()
-        run.save(update_fields=["status", "elapsed_seconds", "message", "finished_at"])
+
+        run = ETLRun.objects.create(
+            user=request.user,
+            records_processed=0,
+            elapsed_seconds=float(elapsed),
+            status=ETLRun.Status.FAIL,
+            message=traceback.format_exc(),
+        )
 
         return JsonResponse({"error": "Error ejecutando ETL", "details": str(e)}, status=500)
     finally:

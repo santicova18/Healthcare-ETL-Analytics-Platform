@@ -16,7 +16,15 @@ from apps.ml.ml_schema import (
     validate_feature_schema,
 )
 from apps.ml.models import ModelVersion, PredictionLog
+from apps.ml.train import train_risk_model
 from apps.patients.models import Patient
+
+
+def _macro_avg(per_class):
+    if isinstance(per_class, dict) and per_class:
+        vals = [v for v in per_class.values() if isinstance(v, (int, float))]
+        return round(sum(vals) / len(vals), 4) if vals else None
+    return None
 
 
 def _json_error(message: str, *, status: int = 400) -> JsonResponse:
@@ -58,9 +66,12 @@ def model_info(request):
         {
             "version": version.version,
             "accuracy": version.accuracy,
-            "precision": version.precision,
-            "recall": version.recall,
-            "f1_score": version.f1_score,
+            "precision": _macro_avg(version.precision),
+            "recall": _macro_avg(version.recall),
+            "f1_score": _macro_avg(version.f1_score),
+            "precision_per_class": version.precision,
+            "recall_per_class": version.recall,
+            "f1_per_class": version.f1_score,
             "dataset_size": version.dataset_size,
             "fecha_entrenamiento": version.created_at.isoformat(),
         }
@@ -108,6 +119,21 @@ def model_versions(request):
         )
 
     return JsonResponse({"ok": True, "versions": payload})
+
+
+@login_required
+@role_required("Administrador", "Analista")
+@require_http_methods(["POST"])
+def train_model(request):
+    resultado = train_risk_model()
+
+    version = ModelVersion.objects.filter(is_active=True).order_by("-created_at").first()
+
+    return JsonResponse({
+        "success": True,
+        "version": version.version if version else None,
+        "accuracy": version.accuracy if version else None,
+    })
 
 
 @login_required

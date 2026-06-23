@@ -10,18 +10,51 @@
     const loading = document.getElementById('modelInfoLoading');
     if (!body) return;
 
+    const fmt = function (v) {
+      return v != null ? Number(v).toFixed(2) : '-';
+    };
+
     try {
       const data = await HealthAPI.apiGet('/api/ml/model-info/');
+
+      let perClassHtml = '';
+      if (data.precision_per_class && typeof data.precision_per_class === 'object') {
+        const classes = Object.keys(data.precision_per_class);
+        if (classes.length) {
+          const rows = classes.map(function (cls) {
+            return '<tr>' +
+              '<td>' + cls + '</td>' +
+              '<td>' + fmt(data.precision_per_class[cls]) + '</td>' +
+              '<td>' + fmt(data.recall_per_class[cls]) + '</td>' +
+              '<td>' + fmt(data.f1_per_class[cls]) + '</td>' +
+            '</tr>';
+          }).join('');
+          perClassHtml =
+            '<div class="mt-2">' +
+              '<a class="small" data-bs-toggle="collapse" href="#perClassMetrics" role="button">' +
+                'Ver métricas por clase &raquo;' +
+              '</a>' +
+              '<div class="collapse mt-1" id="perClassMetrics">' +
+                '<table class="table table-sm table-bordered mb-0">' +
+                  '<thead class="table-light"><tr><th>Clase</th><th>Precision</th><th>Recall</th><th>F1</th></tr></thead>' +
+                  '<tbody>' + rows + '</tbody>' +
+                '</table>' +
+              '</div>' +
+            '</div>';
+        }
+      }
+
       body.innerHTML =
         '<dl class="row mb-0">' +
           '<dt class="col-sm-5">Versión</dt><dd class="col-sm-7">' + data.version + '</dd>' +
-          '<dt class="col-sm-5">Accuracy</dt><dd class="col-sm-7">' + (data.accuracy ?? '-') + '</dd>' +
-          '<dt class="col-sm-5">Precision</dt><dd class="col-sm-7">' + (data.precision ?? '-') + '</dd>' +
-          '<dt class="col-sm-5">Recall</dt><dd class="col-sm-7">' + (data.recall ?? '-') + '</dd>' +
-          '<dt class="col-sm-5">F1</dt><dd class="col-sm-7">' + (data.f1_score ?? '-') + '</dd>' +
+          '<dt class="col-sm-5">Accuracy</dt><dd class="col-sm-7">' + fmt(data.accuracy) + '</dd>' +
+          '<dt class="col-sm-5">Precision</dt><dd class="col-sm-7">' + fmt(data.precision) + '</dd>' +
+          '<dt class="col-sm-5">Recall</dt><dd class="col-sm-7">' + fmt(data.recall) + '</dd>' +
+          '<dt class="col-sm-5">F1</dt><dd class="col-sm-7">' + fmt(data.f1_score) + '</dd>' +
           '<dt class="col-sm-5">Dataset</dt><dd class="col-sm-7">' + (data.dataset_size ?? '-') + '</dd>' +
           '<dt class="col-sm-5">Entrenamiento</dt><dd class="col-sm-7">' + (data.fecha_entrenamiento ?? '-') + '</dd>' +
-        '</dl>';
+        '</dl>' +
+        perClassHtml;
     } catch (err) {
       if (loading) loading.remove();
       body.innerHTML = '<p class="text-danger mb-0">' + err.message + '</p>';
@@ -89,6 +122,33 @@
     }
   }
 
+  async function runTraining() {
+    const btn = document.getElementById('trainBtn');
+    const spinner = document.getElementById('trainSpinner');
+    const resultEl = document.getElementById('trainResult');
+    btn.disabled = true;
+    spinner.classList.remove('d-none');
+    resultEl.classList.add('d-none');
+    HealthAPI.hideError('mlError');
+
+    try {
+      const data = await HealthAPI.apiPostJson('/api/ml/train/', {});
+      resultEl.innerHTML = '<div class="alert alert-success mb-0">' +
+        '<strong>Modelo entrenado correctamente</strong><br>' +
+        'Versión: <code>' + (data.version || '-') + '</code>' +
+        (data.accuracy != null ? ' &nbsp; Accuracy: <strong>' + Number(data.accuracy).toFixed(4) + '</strong>' : '') +
+        '</div>';
+      resultEl.classList.remove('d-none');
+      loadVersions();
+    } catch (err) {
+      resultEl.innerHTML = '<div class="alert alert-danger mb-0">' + err.message + '</div>';
+      resultEl.classList.remove('d-none');
+    } finally {
+      btn.disabled = false;
+      spinner.classList.add('d-none');
+    }
+  }
+
   if (window.ML_SHOW_CLINICAL) {
     loadModelInfo();
     document.getElementById('predictionForm')?.addEventListener('submit', runPrediction);
@@ -96,5 +156,6 @@
   if (window.ML_SHOW_ANALYST) {
     loadVersions();
     document.getElementById('refreshVersions')?.addEventListener('click', loadVersions);
+    document.getElementById('trainBtn')?.addEventListener('click', runTraining);
   }
 })();
