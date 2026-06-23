@@ -124,10 +124,12 @@ def etl_run(request):
             status=200,
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         elapsed = round(time.time() - start, 3)
         run.status = ETLRun.Status.FAIL 
         run.elapsed_seconds = float(elapsed)
-        run.message = str(e)
+        run.message = traceback.format_exc()
         run.finished_at = timezone.now()
         run.save(update_fields=["status", "elapsed_seconds", "message", "finished_at"])
 

@@ -1,4 +1,5 @@
 import os
+import traceback
 import pandas as pd
 import numpy as np
 from apps.patients.models import Patient
@@ -146,7 +147,7 @@ def clean_and_repair_dataset(df):
     
     # ML Ready: Garantizar tipos de datos finales uniformes y limpios sin nulos
     if 'sexo' in df.columns:
-        df['sexo'] = df['sexo'].fillna('Desconocido').astype(str).str.strip()
+        df['sexo'] = df['sexo'].fillna('N/A').astype(str).str.strip()
     if 'nombres' in df.columns:
         df['nombres'] = df['nombres'].fillna('N/A').astype(str)
     if 'apellidos' in df.columns:
@@ -195,9 +196,21 @@ def process_clinical_dataset(file_path):
             return 0
         
         if file_path.lower().endswith('.xlsx'):
-            df = pd.read_excel(file_path)
+            df = pd.read_excel(file_path, engine='openpyxl')
+        elif file_path.lower().endswith('.csv'):
+            try:
+                df = pd.read_csv(file_path, encoding='utf-8')
+            except UnicodeDecodeError:
+                df = pd.read_csv(file_path, encoding='latin-1')
+            except Exception:
+                df = pd.read_csv(file_path, sep=None, engine='python')
         else:
-            df = pd.read_csv(file_path)
+            try:
+                df = pd.read_csv(file_path, encoding='utf-8')
+            except UnicodeDecodeError:
+                df = pd.read_csv(file_path, encoding='latin-1')
+            except Exception:
+                df = pd.read_csv(file_path, sep=None, engine='python')
     except Exception as e:
         print(f"[ERROR] Error al leer el archivo {file_path}: {e}")
         return 0
@@ -245,22 +258,32 @@ def process_clinical_dataset(file_path):
             if pd.isna(id_pac):
                 continue
             
+            def _safe_int(val, default=0):
+                if val is None or (isinstance(val, float) and (pd.isna(val) or not float('-inf') < val < float('inf'))):
+                    return default
+                return int(val)
+
+            def _safe_float(val, default=0.0):
+                if val is None or (isinstance(val, float) and (pd.isna(val) or not float('-inf') < val < float('inf'))):
+                    return default
+                return float(val)
+
             patient = Patient(
                 id_paciente=int(id_pac),
                 nombres=str(row.get('nombres', 'N/A')),
                 apellidos=str(row.get('apellidos', 'N/A')),
-                edad=int(row.get('edad', 35)),
-                sexo=str(row.get('sexo', 'Desconocido')),
-                peso=float(row.get('peso', 72.0)),
-                altura=float(row.get('altura', 1.70)),
-                imc=float(row.get('imc', 24.9)),
-                presion_sistolica=int(pd.to_numeric(row.get('presion_sistolica'), errors='coerce') or 0),
-                presion_diastolica=int(pd.to_numeric(row.get('presion_diastolica'), errors='coerce') or 0),
-                frecuencia_cardiaca=int(pd.to_numeric(row.get('frecuencia_cardiaca'), errors='coerce') or 0),
-                glucosa=float(row.get('glucosa', 100.0)),
-                colesterol=float(row.get('colesterol', 190.0)),
-                saturacion_oxigeno=float(row.get('saturacion_oxigeno', 98.0)),
-                temperatura=float(row.get('temperatura', 36.5)),
+                edad=_safe_int(row.get('edad'), 35),
+                sexo=str(row.get('sexo', 'N/A')),
+                peso=_safe_float(row.get('peso'), 72.0),
+                altura=_safe_float(row.get('altura'), 1.70),
+                imc=_safe_float(row.get('imc'), 24.9),
+                presion_sistolica=_safe_int(row.get('presion_sistolica')),
+                presion_diastolica=_safe_int(row.get('presion_diastolica')),
+                frecuencia_cardiaca=_safe_int(row.get('frecuencia_cardiaca')),
+                glucosa=_safe_float(row.get('glucosa'), 100.0),
+                colesterol=_safe_float(row.get('colesterol'), 190.0),
+                saturacion_oxigeno=_safe_float(row.get('saturacion_oxigeno'), 98.0),
+                temperatura=_safe_float(row.get('temperatura'), 36.5),
                 antecedentes_familiares=bool(row.get('antecedentes_familiares', False)),
                 fumador=bool(row.get('fumador', False)),
                 consumo_alcohol=bool(row.get('consumo_alcohol', False)),
@@ -272,10 +295,15 @@ def process_clinical_dataset(file_path):
             patients_to_create.append(patient)
         except Exception as e:
             print(f"Error procesando paciente ID {row.get('id_paciente')}: {e}")
+            traceback.print_exc()
             continue
 
     print(f"VA A INSERTAR: {len(patients_to_create)} pacientes")
     if patients_to_create:
-        Patient.objects.bulk_create(patients_to_create)
+        try:
+            Patient.objects.bulk_create(patients_to_create, ignore_conflicts=True)
+        except Exception as e:
+            print(f"[ERROR] bulk_create falló: {e}")
+            return len(patients_to_create)
 
     return len(patients_to_create)
