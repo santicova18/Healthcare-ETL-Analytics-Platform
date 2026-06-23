@@ -37,7 +37,7 @@
     // Ordenar por ID ascendente
     results.sort(function(a, b) { return a.id_paciente - b.id_paciente; });
 
-    var colSpan = canEdit ? 13 : 12;
+    var colSpan = canEdit ? 23 : 22;
 
     if (!results.length) {
       tbody.innerHTML = '<tr><td colspan="' + colSpan + '" class="text-center text-muted py-4">No hay pacientes registrados</td></tr>';
@@ -52,11 +52,21 @@
           '<td>' + (p.apellidos || '-') + '</td>' +
           '<td>' + (p.edad || '-') + '</td>' +
           '<td>' + (p.sexo || '-') + '</td>' +
+          '<td>' + (p.peso != null ? Number(p.peso).toFixed(1) : '-') + '</td>' +
+          '<td>' + (p.altura != null ? Number(p.altura).toFixed(2) : '-') + '</td>' +
           '<td>' + (p.imc != null ? Number(p.imc).toFixed(1) : '-') + '</td>' +
           '<td>' + (p.presion_sistolica || '-') + '</td>' +
           '<td>' + (p.presion_diastolica || '-') + '</td>' +
+          '<td>' + (p.frecuencia_cardiaca || '-') + '</td>' +
           '<td>' + (p.glucosa != null ? Number(p.glucosa).toFixed(0) : '-') + '</td>' +
           '<td>' + (p.colesterol != null ? Number(p.colesterol).toFixed(0) : '-') + '</td>' +
+          '<td>' + (p.saturacion_oxigeno != null ? Number(p.saturacion_oxigeno).toFixed(1) : '-') + '</td>' +
+          '<td>' + (p.temperatura != null ? Number(p.temperatura).toFixed(1) : '-') + '</td>' +
+          '<td>' + (p.antecedentes_familiares ? 'Sí' : 'No') + '</td>' +
+          '<td>' + (p.fumador ? 'Sí' : 'No') + '</td>' +
+          '<td>' + (p.consumo_alcohol ? 'Sí' : 'No') + '</td>' +
+          '<td>' + (p.actividad_fisica || '-') + '</td>' +
+          '<td>' + (p.diagnostico_preliminar || '-') + '</td>' +
           '<td>' + riskBadge(p.riesgo_enfermedad) + '</td>' +
           '<td class="text-nowrap">' + (p.fecha_consulta || '-') + '</td>' +
           (canEdit ? '<td class="text-nowrap">' + actionButtons(p) + '</td>' : '') +
