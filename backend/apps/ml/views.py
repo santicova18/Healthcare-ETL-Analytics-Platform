@@ -83,6 +83,8 @@ def _safe_artifact_path(base_path: str, artifact_name: str) -> str:
 @require_GET
 def model_versions(request):
     versions = ModelVersion.objects.all().order_by("-created_at")
+    if not versions:
+        print(f"[INFO] model_versions: No hay registros en BD para {request.user}")
     payload = []
     for v in versions:
         metadata_path = v.metadata_path or ""

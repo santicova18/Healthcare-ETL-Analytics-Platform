@@ -142,8 +142,10 @@ def train_risk_model():
         print(f"  Accuracy Train: {accuracy_train:.2%}")
         print(f"  Accuracy Test:  {accuracy_test:.2%}\n")
 
-        # 10. Generar Matriz de Confusión
+        # 10. Generar Matriz de Confusión (y figura combinada con ROC multiclase)
         cm = confusion_matrix(y_test, y_pred)
+
+        # 10.1. Matriz de confusión sola (archivo existente)
         plt.figure(figsize=(10, 8))
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=le.classes_)
         disp.plot(cmap=plt.cm.Blues)
@@ -152,6 +154,47 @@ def train_risk_model():
         plt.savefig(version_dir / "confusion_matrix.png", dpi=100)
         plt.savefig(_MODELS_DIR / "confusion_matrix.png", dpi=100)
         plt.close()
+
+        # 10.2. Figura combinada: Matriz de confusión + Curva ROC (one-vs-rest)
+        # Nota: y_test y y_pred están en espacio codificado (0..n_classes-1)
+        # y_pred_proba tiene probabilidades por clase en el mismo orden de clases codificadas.
+        from sklearn.preprocessing import label_binarize
+        from sklearn.metrics import roc_curve, auc
+
+        Y_test_bin = label_binarize(y_test, classes=np.arange(len(le.classes_)))
+        if Y_test_bin.ndim == 1:
+            Y_test_bin = np.vstack([1 - Y_test_bin, Y_test_bin]).T
+
+        fig, axes = plt.subplots(1, 2, figsize=(14, 6))
+
+        # Matriz de confusión en subgráfica izquierda
+        ConfusionMatrixDisplay.from_predictions(
+            y_test,
+            y_pred,
+            display_labels=le.classes_,
+            ax=axes[0],
+            cmap=plt.cm.Blues,
+            colorbar=False,
+            values_format="d",
+        )
+        axes[0].set_title("Matriz de Confusión")
+
+        # Curva ROC en subgráfica derecha
+        for class_idx, class_name in enumerate(le.classes_):
+            fpr, tpr, _ = roc_curve(Y_test_bin[:, class_idx], y_pred_proba[:, class_idx])
+            roc_auc = auc(fpr, tpr)
+            axes[1].plot(fpr, tpr, label=f"{class_name} (AUC={roc_auc:.2f})")
+
+        axes[1].plot([0, 1], [0, 1], "k--", label="Aleatorio")
+        axes[1].set_xlabel("FPR")
+        axes[1].set_ylabel("TPR")
+        axes[1].set_title("Curva ROC")
+        axes[1].legend(loc="lower right")
+
+        plt.tight_layout()
+        plt.savefig(version_dir / "confusion_matrix_roc_combined.png", dpi=150)
+        plt.close()
+
 
         # 11. Feature Importance
         feature_importance = pd.DataFrame({
@@ -321,9 +364,11 @@ ESTADO: ENTRENAMIENTO COMPLETADO
                     "is_active": True,
                 },
             )
+            print(f"[OK] ModelVersion registrado en BD: {version_name}")
         except Exception as db_e:
-            # No abortar el entrenamiento; la trazabilidad en disco ya existe.
+            import traceback
             print(f"[WARN] Persistencia ModelVersion falló: {db_e}")
+            print(f"[WARN] Traceback: {traceback.format_exc()}")
 
         return summary
         
