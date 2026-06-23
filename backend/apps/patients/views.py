@@ -68,9 +68,9 @@ def pacientes_list(request):
             Q(nombres__icontains=q_val) | Q(apellidos__icontains=q_val)
         )
 
-    # Respuesta consistente (JSON)
+    # Respuesta consistente (JSON) — sin límite para ver todos los pacientes
     data: list[dict[str, Any]] = []
-    for p in qs[:500]:  # límite preventivo
+    for p in qs:
         data.append(
             {
                 "id_paciente": p.id_paciente,

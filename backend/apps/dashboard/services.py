@@ -153,7 +153,7 @@ def predicciones_disponibles() -> Dict[str, Any]:
 
     Para evitar hardcode, calculamos para los primeros N pacientes.
     """
-    pacientes = list(Patient.objects.all().order_by("-fecha_consulta")[:5])
+    pacientes = list(Patient.objects.all().order_by("-fecha_consulta")[:50])
     out: List[Dict[str, Any]] = []
     for p in pacientes:
         try:

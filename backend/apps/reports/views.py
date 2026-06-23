@@ -45,7 +45,7 @@ def export_patients_csv(request):
     - riesgo_enfermedad
     """
     filters = parse_patient_filters(request)
-    qs = filtered_patients(filters)
+    qs = filtered_patients(filters).order_by("id_paciente")
 
     output = StringIO()
     writer = csv.writer(output)
@@ -248,7 +248,7 @@ def export_patients_excel(request):
         return HttpResponse("openpyxl no está instalado en el entorno.", status=500)
 
     filters = parse_patient_filters(request)
-    qs = filtered_patients(filters)
+    qs = filtered_patients(filters).order_by("id_paciente")
 
     # Import local para no romper import si no se usa.
     from openpyxl import Workbook
@@ -326,7 +326,7 @@ def export_patients_excel(request):
     # Para no romper si el modelo no existe, se llenan solo si hay.
     from apps.ml.predict import predict_risk
 
-    for p in qs.order_by("-fecha_consulta")[:50]:
+    for p in qs.order_by("id_paciente")[:2000]:
         try:
             risk_label, confidence, _ = predict_risk(
                 {
@@ -347,7 +347,7 @@ def export_patients_excel(request):
 
     ws_etl = wb.create_sheet("Historial ETL")
     ws_etl.append(["started_at", "records_processed", "status"])
-    for r in ETLRun.objects.all().order_by("-started_at")[:50]:
+    for r in ETLRun.objects.all().order_by("-started_at")[:200]:
         ws_etl.append([r.started_at.isoformat(), int(r.records_processed), r.status])
 
     # Metadata
