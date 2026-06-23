@@ -146,7 +146,7 @@ class Nivel2PatientDuplicateDetectionTest(TestCase):
 
 
 class ViewDuplicateDetectionTest(TestCase):
-    def test_view_returns_409_for_dataset_duplicate(self):
+    def test_view_returns_200_with_reason_for_dataset_duplicate(self):
         from django.test import RequestFactory
         from django.contrib.auth.models import User, AnonymousUser
         from apps.etl.views import etl_run
@@ -179,10 +179,10 @@ class ViewDuplicateDetectionTest(TestCase):
             req = factory.post("/api/etl/run/", {"file_path": tmp})
             req.user = user
             resp = etl_run(req)
-            self.assertEqual(resp.status_code, 409)
+            self.assertEqual(resp.status_code, 200)
 
             data = resp.json()
             self.assertEqual(data.get("reason"), "dataset_already_processed")
-            self.assertFalse(data.get("success", True))
+            self.assertFalse(data.get("ok", True))
         finally:
             os.unlink(tmp)

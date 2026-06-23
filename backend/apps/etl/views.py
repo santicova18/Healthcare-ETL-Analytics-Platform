@@ -109,11 +109,29 @@ def etl_run(request):
         result = process_clinical_dataset(file_path, original_filename=original_filename)
         elapsed = round(time.time() - start, 3)
 
-        # Dataset duplicado (Nivel 1)
+        # Dataset duplicado (Nivel 1) — devolver 200 con mensaje descriptivo
         if isinstance(result, dict) and result.get("reason") == "dataset_already_processed":
+            # Buscar info del procesamiento previo para el mensaje
+            from apps.etl.models import ETLHistory
+            import hashlib
+            history = None
+            if os.path.exists(file_path):
+                file_hash = hashlib.sha256()
+                with open(file_path, "rb") as f:
+                    for chunk in iter(lambda: f.read(65536), b""):
+                        file_hash.update(chunk)
+                history = ETLHistory.objects.filter(file_hash=file_hash.hexdigest()).first()
+
             return JsonResponse(
-                {"success": False, "reason": "dataset_already_processed"},
-                status=409,
+                {
+                    "ok": False,
+                    "reason": "dataset_already_processed",
+                    "message": "Este archivo ya fue procesado anteriormente.",
+                    "processed_at": history.processed_at.isoformat() if history and history.processed_at else None,
+                    "records_inserted": history.records_inserted if history else 0,
+                    "file_name": history.file_name if history else (original_filename or "desconocido"),
+                },
+                status=200,
             )
 
         # Procesamiento exitoso
