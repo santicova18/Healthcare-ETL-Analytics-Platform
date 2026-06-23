@@ -1,20 +1,4 @@
 (function () {
-  const DEFAULT_VITALS = {
-    peso: 70,
-    altura: 1.7,
-    presion_sistolica: 120,
-    presion_diastolica: 80,
-    frecuencia_cardiaca: 72,
-    glucosa: 90,
-    colesterol: 180,
-    saturacion_oxigeno: 98,
-    temperatura: 36.5,
-    antecedentes_familiares: false,
-    fumador: false,
-    consumo_alcohol: false,
-    actividad_fisica: 'Moderada',
-  };
-
   const canEdit = window.CAN_EDIT_PATIENTS === true;
   const canDelete = window.CAN_DELETE_PATIENTS === true;
   let patientsCache = [];
@@ -98,6 +82,30 @@
     });
   }
 
+  function calcImc(peso, altura) {
+    if (peso > 0 && altura > 0) {
+      return Math.round((peso / (altura * altura)) * 100) / 100;
+    }
+    return '';
+  }
+
+  function setupImcCalc(formId, imcId) {
+    var form = document.getElementById(formId);
+    if (!form) return;
+    var peso = form.querySelector('[name=peso]');
+    var altura = form.querySelector('[name=altura]');
+    var imc = document.getElementById(imcId);
+    function update() {
+      var p = parseFloat(peso.value) || 0;
+      var a = parseFloat(altura.value) || 0;
+      imc.value = calcImc(p, a);
+    }
+    if (peso && altura && imc) {
+      peso.addEventListener('input', update);
+      altura.addEventListener('input', update);
+    }
+  }
+
   function openEditModal(id) {
     const p = patientsCache.find(function (x) { return x.id_paciente === id; });
     if (!p) return;
@@ -108,9 +116,24 @@
     form.apellidos.value = p.apellidos;
     form.edad.value = p.edad;
     form.sexo.value = p.sexo;
+    form.peso.value = p.peso;
+    form.altura.value = p.altura;
+    form.presion_sistolica.value = p.presion_sistolica;
+    form.presion_diastolica.value = p.presion_diastolica;
+    form.frecuencia_cardiaca.value = p.frecuencia_cardiaca;
+    form.glucosa.value = p.glucosa;
+    form.colesterol.value = p.colesterol;
+    form.saturacion_oxigeno.value = p.saturacion_oxigeno;
+    form.temperatura.value = p.temperatura;
+    form.antecedentes_familiares.value = p.antecedentes_familiares ? 'true' : 'false';
+    form.fumador.value = p.fumador ? 'true' : 'false';
+    form.consumo_alcohol.value = p.consumo_alcohol ? 'true' : 'false';
+    form.actividad_fisica.value = p.actividad_fisica || 'Moderada';
     form.riesgo_enfermedad.value = p.riesgo_enfermedad;
     form.diagnostico_preliminar.value = p.diagnostico_preliminar || 'Evaluación inicial';
     form.fecha_consulta.value = p.fecha_consulta;
+    var imcEl = document.getElementById('editImc');
+    if (imcEl) imcEl.value = p.imc || calcImc(parseFloat(p.peso) || 0, parseFloat(p.altura) || 0);
     if (!editModal) {
       editModal = new bootstrap.Modal(document.getElementById('editPatientModal'));
     }
@@ -153,47 +176,58 @@
 
   function formToPayload(form) {
     const fd = new FormData(form);
-    const peso = DEFAULT_VITALS.peso;
-    const altura = DEFAULT_VITALS.altura;
-    return Object.assign({}, DEFAULT_VITALS, {
+    const peso = parseFloat(fd.get('peso')) || 70;
+    const altura = parseFloat(fd.get('altura')) || 1.7;
+    return {
       id_paciente: parseInt(fd.get('id_paciente'), 10),
       nombres: fd.get('nombres'),
       apellidos: fd.get('apellidos'),
       edad: parseInt(fd.get('edad'), 10),
       sexo: fd.get('sexo'),
-      riesgo_enfermedad: fd.get('riesgo_enfermedad'),
-      diagnostico_preliminar: fd.get('diagnostico_preliminar') || 'Evaluación inicial',
-      fecha_consulta: fd.get('fecha_consulta'),
+      peso: peso,
+      altura: altura,
       imc: Math.round((peso / (altura * altura)) * 100) / 100,
-    });
+      presion_sistolica: parseInt(fd.get('presion_sistolica'), 10) || 120,
+      presion_diastolica: parseInt(fd.get('presion_diastolica'), 10) || 80,
+      frecuencia_cardiaca: parseInt(fd.get('frecuencia_cardiaca'), 10) || 72,
+      glucosa: parseFloat(fd.get('glucosa')) || 90,
+      colesterol: parseFloat(fd.get('colesterol')) || 180,
+      saturacion_oxigeno: parseFloat(fd.get('saturacion_oxigeno')) || 98,
+      temperatura: parseFloat(fd.get('temperatura')) || 36.5,
+      antecedentes_familiares: fd.get('antecedentes_familiares') === 'true',
+      fumador: fd.get('fumador') === 'true',
+      consumo_alcohol: fd.get('consumo_alcohol') === 'true',
+      actividad_fisica: fd.get('actividad_fisica') || 'Moderada',
+      diagnostico_preliminar: fd.get('diagnostico_preliminar') || 'Evaluación inicial',
+      riesgo_enfermedad: fd.get('riesgo_enfermedad'),
+      fecha_consulta: fd.get('fecha_consulta'),
+    };
   }
 
   function editFormToPayload(form) {
     const fd = new FormData(form);
-    // Completamos con valores existentes para pasar validación completa del backend
-    const id = parseInt(fd.get('id_paciente'), 10);
-    const existing = patientsCache.find(function (x) { return x.id_paciente === id; }) || {};
-
+    const peso = parseFloat(fd.get('peso')) || 70;
+    const altura = parseFloat(fd.get('altura')) || 1.7;
     return {
-      id_paciente: id,
+      id_paciente: parseInt(fd.get('id_paciente'), 10),
       nombres: fd.get('nombres'),
       apellidos: fd.get('apellidos'),
       edad: parseInt(fd.get('edad'), 10),
       sexo: fd.get('sexo'),
-      peso: existing.peso,
-      altura: existing.altura,
-      imc: existing.imc,
-      presion_sistolica: existing.presion_sistolica,
-      presion_diastolica: existing.presion_diastolica,
-      frecuencia_cardiaca: existing.frecuencia_cardiaca,
-      glucosa: existing.glucosa,
-      colesterol: existing.colesterol,
-      saturacion_oxigeno: existing.saturacion_oxigeno,
-      temperatura: existing.temperatura,
-      antecedentes_familiares: existing.antecedentes_familiares,
-      fumador: existing.fumador,
-      consumo_alcohol: existing.consumo_alcohol,
-      actividad_fisica: existing.actividad_fisica,
+      peso: peso,
+      altura: altura,
+      imc: Math.round((peso / (altura * altura)) * 100) / 100,
+      presion_sistolica: parseInt(fd.get('presion_sistolica'), 10) || 120,
+      presion_diastolica: parseInt(fd.get('presion_diastolica'), 10) || 80,
+      frecuencia_cardiaca: parseInt(fd.get('frecuencia_cardiaca'), 10) || 72,
+      glucosa: parseFloat(fd.get('glucosa')) || 90,
+      colesterol: parseFloat(fd.get('colesterol')) || 180,
+      saturacion_oxigeno: parseFloat(fd.get('saturacion_oxigeno')) || 98,
+      temperatura: parseFloat(fd.get('temperatura')) || 36.5,
+      antecedentes_familiares: fd.get('antecedentes_familiares') === 'true',
+      fumador: fd.get('fumador') === 'true',
+      consumo_alcohol: fd.get('consumo_alcohol') === 'true',
+      actividad_fisica: fd.get('actividad_fisica') || 'Moderada',
       diagnostico_preliminar: fd.get('diagnostico_preliminar') || 'Evaluación inicial',
       riesgo_enfermedad: fd.get('riesgo_enfermedad'),
       fecha_consulta: fd.get('fecha_consulta'),
@@ -274,6 +308,9 @@
   if (dateInput && !dateInput.value) {
     dateInput.value = new Date().toISOString().split('T')[0];
   }
+
+  setupImcCalc('createPatientForm', 'createImc');
+  setupImcCalc('editPatientForm', 'editImc');
 
   loadPatients();
 })();
