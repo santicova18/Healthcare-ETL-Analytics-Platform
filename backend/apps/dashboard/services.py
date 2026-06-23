@@ -7,7 +7,6 @@ from django.utils import timezone
 
 from apps.analytics.services import kpis_clinicos, segmentaciones
 from apps.etl.models import ETLRun
-from apps.ml.predict import predict_risk
 from apps.patients.models import Patient
 
 
@@ -149,34 +148,30 @@ def etl_history_summary(limit: int = 10) -> Dict[str, Any]:
 
 
 def predicciones_disponibles() -> Dict[str, Any]:
-    """Predicciones bajo demanda (no persistimos en BD aún).
+    """Predicciones reales desde el historial guardado en BD (PredictionLog).
 
-    Para evitar hardcode, calculamos para los primeros N pacientes.
+    Retorna el total de predicciones registradas y las ultimas 10.
     """
-    pacientes = list(Patient.objects.all().order_by("-fecha_consulta")[:50])
-    out: List[Dict[str, Any]] = []
-    for p in pacientes:
-        try:
-            risk_label, confidence, _ = predict_risk(
-                {
-                    "edad": p.edad,
-                    "imc": p.imc,
-                    "presion_sistolica": p.presion_sistolica,
-                    "presion_diastolica": p.presion_diastolica,
-                    "glucosa": p.glucosa,
-                    "colesterol": p.colesterol,
-                }
-            )
-            out.append(
-                {
-                    "id_paciente": p.id_paciente,
-                    "riesgo_enfermedad": str(risk_label),
-                    "confidence": confidence,
-                }
-            )
-        except Exception:
-            # Si no existe modelo, retornamos vacío; frontend mostrará 0.
-            continue
+    from apps.ml.models import PredictionLog
 
-    return {"count": len(out), "items": out}
+    total = PredictionLog.objects.count()
+    ultimas = list(
+        PredictionLog.objects.select_related("patient")
+        .order_by("-created_at")[:10]
+    )
+
+    items: List[Dict[str, Any]] = []
+    for log in ultimas:
+        items.append(
+            {
+                "id_paciente": log.patient_id,
+                "nombres": log.patient.nombres if log.patient else "",
+                "apellidos": log.patient.apellidos if log.patient else "",
+                "prediction": log.prediction,
+                "probability": round(log.probability * 100, 1),
+                "created_at": log.created_at.isoformat() if log.created_at else "",
+            }
+        )
+
+    return {"count": total, "items": items}
 
