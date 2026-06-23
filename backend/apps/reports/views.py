@@ -85,47 +85,148 @@ def export_patients_csv(request):
 @login_required
 @role_required('Administrador', 'Médico', 'Analista')
 def export_patients_pdf(request):
-    """Exporta pacientes filtrados a PDF (reportlab).
+    """Exporta pacientes filtrados a PDF (reportlab) con tabla formateada.
 
     Filtros soportados (opcional):
     - riesgo_enfermedad
+
+    Los pacientes se ordenan por ID de menor a mayor.
     """
     if not reportlab_available:
         return HttpResponse("reportlab no está instalado en el entorno.", status=500)
 
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    )
+
     filters = parse_patient_filters(request)
-    qs = filtered_patients(filters)
+    qs = filtered_patients(filters).order_by("id_paciente")  # Ordenado por ID ascendente
 
     buffer = BytesIO()
-    pdf = canvas.Canvas(buffer, pagesize=letter)
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        rightMargin=30,
+        leftMargin=30,
+        topMargin=30,
+        bottomMargin=30,
+    )
 
-    width, height = letter
-    pdf.setTitle("Pacientes - Export")
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle(
+        "TitleStyle",
+        parent=styles["Heading1"],
+        fontSize=16,
+        spaceAfter=12,
+        textColor=colors.HexColor("#0d6efd"),
+    )
+    subtitle_style = ParagraphStyle(
+        "SubtitleStyle",
+        parent=styles["Normal"],
+        fontSize=10,
+        spaceAfter=20,
+        textColor=colors.gray,
+    )
 
-    pdf.setFont("Helvetica-Bold", 14)
-    pdf.drawString(50, height - 50, "Pacientes - Export")
+    elements = []
 
-    pdf.setFont("Helvetica", 10)
-    y = height - 75
+    # Título
+    elements.append(Paragraph("HealthAnalytics IPS", title_style))
+    filtro_texto = f"Filtro: {filters.riesgo_enfermedad}" if filters.riesgo_enfermedad else "Filtro: Todos los pacientes"
+    elements.append(Paragraph(
+        f"Reporte de Pacientes — {filtro_texto} — {datetime.date.today().isoformat()}",
+        subtitle_style,
+    ))
+
     total = qs.count()
-    pdf.drawString(50, y, f"Total: {total}")
-    y -= 20
+    elements.append(Paragraph(f"Total de pacientes: <b>{total}</b>", styles["Normal"]))
+    elements.append(Spacer(1, 12))
 
-    pdf.setFont("Helvetica", 9)
+    # Datos de la tabla
+    header = [
+        "ID", "Nombres", "Apellidos", "Edad", "Sexo",
+        "IMC", "Pres. Sist.", "Pres. Diast.", "Glucosa",
+        "Colesterol", "Riesgo", "Fecha",
+    ]
+
+    data = [header]
     for p in qs[:200]:
-        line = (
-            f"#{p.id_paciente} | {p.nombres} {p.apellidos} | "
-            f"Edad: {p.edad} | IMC: {p.imc} | Riesgo: {p.riesgo_enfermedad} | "
-            f"Fecha: {p.fecha_consulta}"
-        )
-        pdf.drawString(50, y, line[:120])
-        y -= 12
-        if y < 60:
-            pdf.showPage()
-            y = height - 50
-            pdf.setFont("Helvetica", 9)
+        data.append([
+            str(p.id_paciente),
+            p.nombres or "",
+            p.apellidos or "",
+            str(p.edad),
+            p.sexo or "",
+            f"{p.imc:.1f}" if p.imc else "",
+            str(p.presion_sistolica),
+            str(p.presion_diastolica),
+            f"{p.glucosa:.0f}" if p.glucosa else "",
+            f"{p.colesterol:.0f}" if p.colesterol else "",
+            p.riesgo_enfermedad or "",
+            str(p.fecha_consulta) if p.fecha_consulta else "",
+        ])
 
-    pdf.save()
+    # Calcular anchos de columna proporcionales
+    col_widths = [30, 60, 60, 30, 40, 35, 40, 40, 40, 45, 50, 60]
+    available_width = letter[0] - 60  # márgenes
+    scale = available_width / sum(col_widths)
+    col_widths = [w * scale for w in col_widths]
+
+    table = Table(data, colWidths=col_widths, repeatRows=1)
+
+    # Estilo de tabla profesional
+    table_style = TableStyle([
+        # Encabezado
+        ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#0d6efd")),
+        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
+        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+        ("FONTSIZE", (0, 0), (-1, 0), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, 0), 8),
+        ("TOPPADDING", (0, 0), (-1, 0), 8),
+        # Filas de datos
+        ("FONTNAME", (0, 1), (-1, -1), "Helvetica"),
+        ("FONTSIZE", (0, 1), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 5),
+        ("TOPPADDING", (0, 1), (-1, -1), 5),
+        # Alineación
+        ("ALIGN", (0, 0), (0, -1), "CENTER"),   # ID centrado
+        ("ALIGN", (3, 0), (3, -1), "CENTER"),   # Edad centrado
+        ("ALIGN", (5, 0), (10, -1), "CENTER"),  # IMC, presiones, glucosa, colesterol, riesgo centrados
+        # Líneas de cuadrícula
+        ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#dee2e6")),
+        ("LINEBELOW", (0, 0), (-1, 0), 1.5, colors.HexColor("#0a58ca")),
+        # Colores alternados
+        ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, colors.HexColor("#f8f9fa")]),
+    ])
+
+    # Colorear la columna de riesgo
+    riesgo_colors = {
+        "Crítico": colors.HexColor("#dc3545"),
+        "Alto": colors.HexColor("#fd7e14"),
+        "Medio": colors.HexColor("#0dcaf0"),
+        "Bajo": colors.HexColor("#198754"),
+    }
+    for row_idx, row_data in enumerate(data[1:], start=1):
+        riesgo = row_data[10]
+        if riesgo in riesgo_colors:
+            table_style.add("TEXTCOLOR", (10, row_idx), (10, row_idx), riesgo_colors[riesgo])
+            table_style.add("FONTNAME", (10, row_idx), (10, row_idx), "Helvetica-Bold")
+
+    table.setStyle(table_style)
+    elements.append(table)
+
+    # Pie de página
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph(
+        f"Documento generado el {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')} — HealthAnalytics IPS",
+        styles["Normal"],
+    ))
+
+    doc.build(elements)
     buffer.seek(0)
 
     response = HttpResponse(buffer.getvalue(), content_type="application/pdf")
