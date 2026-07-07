@@ -469,5 +469,5 @@ Para obtener soporte técnico o resolver dudas adicionales sobre el sistema, uti
 ---
 
 *Documento generado para la plataforma **HealthAnalytics IPS** — Panel Clínico de Gestión y Analítica de Datos en Salud.*
-
+*creado por santicova18*
 *Versión del sistema: 1.0.0*
